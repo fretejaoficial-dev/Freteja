@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>FreteJá - Soluções em Transporte</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #0F2B3D;
+            --primary-dark: #091e2c;
+            --secondary: #E67E22;
+            --secondary-dark: #d35400;
+            --accent: #2980b9;
+            --light-bg: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-dark: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --online: #10B981;
+            --offline: #94A3B8;
+            --notification: #3b82f6;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            --radius: 1rem;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--light-bg); color: var(--text-dark); line-height: 1.5; }
+        .site-wrapper { max-width: 1400px; margin: 0 auto; background: white; box-shadow: var(--shadow-md); min-height: 100vh; position: relative; }
+        .main-header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 1rem 2rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; position: relative; }
+        .logo-area { display: flex; align-items: center; gap: 0.75rem; font-size: 1.5rem; font-weight: 700; position: relative; }
+        .logo-area i { color: var(--secondary); font-size: 1.8rem; }
+        .admin-secret-btn { position: absolute; left: 0; top: 0; width: 50px; height: 50px; opacity: 0; cursor: pointer; z-index: 10; }
+        
+        /* HAMBURGER MENU */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: transform 0.2s;
+            z-index: 20;
+        }
+        .hamburger:hover { transform: scale(1.05); }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.8rem;
+            align-items: center;
+            flex-wrap: wrap;
+            transition: all 0.3s ease;
+        }
+        .nav-links a { color: #e2e8f0; text-decoration: none; font-weight: 500; transition: 0.2s; cursor: pointer; font-size: 0.95rem; }
+        .nav-links a:hover, .nav-links a.active { color: white; border-bottom: 2px solid var(--secondary); padding-bottom: 4px; }
+        
+        .user-area { display: flex; align-items: center; gap: 1rem; background: rgba(255,255,255,0.1); padding: 0.3rem 1rem; border-radius: 2rem; }
+        .user-area span { font-size: 0.85rem; }
+        .login-btn-header, .logout-btn { background: none; border: none; color: #ffb347; cursor: pointer; font-weight: 500; font-size: 0.85rem; transition: 0.2s; }
+        .login-btn-header:hover, .logout-btn:hover { text-decoration: underline; color: white; }
+        
+        /* WhatsApp Floating Button */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: #25D366;
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+        .whatsapp-float:hover {
+            background-color: #128C7E;
+            transform: scale(1.08);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        
+        .page { display: none; padding: 2rem; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+        .service-grid { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; margin: 2rem 0; }
+        .service-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 2rem; flex: 1; min-width: 260px; text-align: center; cursor: pointer; transition: all 0.25s; border: 1px solid var(--border); }
+        .service-card:hover { transform: translateY(-6px); border-color: var(--secondary); box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1); }
+        .service-card i { font-size: 3rem; color: var(--secondary); margin-bottom: 1rem; }
+        .service-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .form-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border); }
+        .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { flex: 1; min-width: 180px; }
+        label { font-weight: 500; margin-bottom: 0.25rem; display: block; color: var(--text-dark); }
+        input, textarea, select { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 0.75rem; font-family: inherit; transition: 0.2s; margin-top: 0.25rem; background: white; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1); }
+        .btn-primary { background: linear-gradient(95deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 0.85rem 1.8rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 14px -6px rgba(15, 43, 61, 0.3); }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 0.6rem 1.2rem; border-radius: 2rem; font-weight: 500; cursor: pointer; }
+        .btn-whatsapp { background: #25D366; color: white; border: none; padding: 0.85rem 1.8rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%; }
+        .btn-whatsapp:hover { background: #128C7E; transform: translateY(-2px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-online { background: var(--online); color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.7rem; cursor: pointer; }
+        .btn-offline { background: var(--offline); color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.7rem; cursor: pointer; }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.3rem; }
+        .status-indicator.online { background: var(--online); box-shadow: 0 0 5px var(--online); }
+        .status-indicator.offline { background: var(--offline); }
+        .truck-type { display: flex; gap: 1rem; margin: 1rem 0; flex-wrap: wrap; }
+        .type-btn { flex: 1; padding: 0.8rem; background: #F1F5F9; border-radius: 1rem; text-align: center; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .type-btn.active { border-color: var(--secondary); background: white; font-weight: 600; }
+        .price-suggestion { background: #FEF9E8; padding: 0.8rem; border-radius: 1rem; margin: 1rem 0; text-align: center; font-weight: 500; }
+        .offer-card { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; box-shadow: var(--shadow-sm); border-left: 4px solid var(--secondary); cursor: pointer; transition: 0.2s; }
+        .offer-card:hover { transform: translateX(4px); }
+        .system-offer-card { border-left-color: var(--accent); background: #f0f7ff; }
+        .history-list, .budget-list, .driver-offers-list { max-height: 500px; overflow-y: auto; margin-bottom: 2rem; }
+        .history-item, .budget-item, .driver-offer-item { background: #F8FAFC; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--secondary); }
+        .driver-offer-item { border-left-color: var(--accent); }
+        .section-title { font-size: 1.4rem; margin: 1.5rem 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .main-footer { background: var(--primary-dark); color: #cbd5e1; text-align: center; padding: 1.5rem; font-size: 0.85rem; border-top: 1px solid #2d3e4e; }
+        .footer-link { color: var(--secondary); text-decoration: none; margin: 0 0.5rem; cursor: pointer; }
+        .footer-link:hover { text-decoration: underline; }
+        
+        /* Página de Suporte */
+        .support-card { background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+        .support-card h3 { color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .support-card h3 i { color: var(--secondary); }
+        .support-contact-list { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+        .support-contact-item { background: var(--light-bg); border-radius: 0.75rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 200px; border: 1px solid var(--border); transition: transform 0.2s; }
+        .support-contact-item:hover { transform: translateY(-2px); border-color: var(--secondary); }
+        .support-contact-item i { font-size: 1.8rem; color: var(--secondary); }
+        .support-contact-item a { text-decoration: none; color: var(--text-dark); font-weight: 500; }
+        .support-contact-item a:hover { color: var(--secondary); }
+        .faq-item { border-bottom: 1px solid var(--border); padding: 1rem 0; }
+        .faq-question { font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .faq-question:hover { color: var(--secondary); }
+        .faq-answer { display: none; padding-top: 0.5rem; color: var(--text-muted); line-height: 1.5; }
+        .faq-answer.show { display: block; }
+        
+        /* Estilos para perfil */
+        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: #e2e8f0; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; cursor: pointer; border: 3px solid var(--secondary); overflow: hidden; }
+        .profile-avatar i { font-size: 4rem; color: var(--secondary); }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-upload { text-align: center; margin-bottom: 1rem; }
+        .avatar-upload input { display: none; }
+        .avatar-upload label { background: var(--accent); color: white; padding: 0.3rem 1rem; border-radius: 2rem; cursor: pointer; font-size: 0.8rem; display: inline-block; margin-top: 0.5rem; }
+        
+        /* Responsive: Hamburguer menu ativo */
+        @media (max-width: 768px) { 
+            .page { padding: 1rem; } 
+            .main-header { flex-direction: row; justify-content: space-between; padding: 1rem; }
+            .hamburger { display: block; }
+            .nav-links {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 75%;
+                max-width: 280px;
+                height: 100vh;
+                background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
+                padding: 5rem 2rem 2rem;
+                gap: 1.8rem;
+                z-index: 100;
+                transition: left 0.3s ease-in-out;
+                box-shadow: 2px 0 12px rgba(0,0,0,0.2);
+                border-radius: 0;
+            }
+            .nav-links.open {
+                left: 0;
+            }
+            .nav-links a { font-size: 1.2rem; padding: 0.5rem 0; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.2); }
+            .nav-links a:hover, .nav-links a.active { border-bottom: 2px solid var(--secondary); background: none; }
+            .user-area { margin-left: auto; }
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.6rem; bottom: 20px; right: 20px; }
+            .form-row { flex-direction: column; }
+        }
+        
+        .toast-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 20px; border-radius: 40px; z-index: 2100; font-size: 0.85rem; box-shadow: var(--shadow-md); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 1100; animation: fadeInModal 0.2s ease; }
+        @keyframes fadeInModal { from { opacity: 0; backdrop-filter: blur(0); } to { opacity: 1; backdrop-filter: blur(8px); } }
+        .modal-content { background: rgba(255, 255, 255, 0.98); max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; border-radius: 2rem; padding: 2rem; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.3); animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUpModal { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-modal { position: absolute; top: 1.2rem; right: 1.5rem; font-size: 1.8rem; cursor: pointer; color: #94a3b8; transition: 0.2s; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .close-modal:hover { color: var(--secondary); background: rgba(0,0,0,0.05); transform: scale(1.05); }
+        .login-header, .register-header, .recovery-header, .admin-header { text-align: center; margin-bottom: 1.8rem; }
+        .login-header i, .register-header i, .recovery-header i, .admin-header i { font-size: 3rem; background: linear-gradient(135deg, var(--secondary), #f39c12); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 0.5rem; display: inline-block; }
+        .login-header h2, .register-header h2, .recovery-header h2, .admin-header h2 { font-size: 1.8rem; margin: 0.3rem 0 0.2rem; color: var(--primary); font-weight: 700; }
+        .login-field, .register-field, .recovery-field { margin-bottom: 1.2rem; position: relative; }
+        .login-field label, .register-field label, .recovery-field label { font-weight: 600; margin-bottom: 0.4rem; display: block; font-size: 0.85rem; color: var(--text-dark); }
+        .login-field input, .register-field input, .recovery-field input { width: 100%; padding: 0.85rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 1.2rem; font-size: 0.95rem; transition: all 0.2s; background: #fefefe; }
+        .login-field input:focus, .register-field input:focus, .recovery-field input:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.15); outline: none; }
+        .login-btn, .register-btn, .recovery-btn, .admin-login-btn { width: 100%; background: linear-gradient(105deg, var(--secondary), var(--secondary-dark)); color: white; font-weight: bold; border: none; padding: 0.9rem; border-radius: 3rem; font-size: 1rem; cursor: pointer; transition: all 0.2s; margin-top: 0.5rem; box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3); }
+        .login-btn:hover, .register-btn:hover, .recovery-btn:hover, .admin-login-btn:hover { background: linear-gradient(105deg, var(--secondary-dark), #b83d00); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(230, 126, 34, 0.4); }
+        .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 1.5rem; padding: 1.2rem; text-align: center; border: 1px solid rgba(230, 126, 34, 0.2); box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+        .stat-card i { font-size: 2.2rem; color: var(--secondary); margin-bottom: 0.5rem; }
+        .stat-card h3 { font-size: 1.8rem; color: var(--primary); margin: 0.2rem 0; }
+        .stat-card p { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+        .admin-section { margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+        .admin-section h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--primary); font-size: 1.3rem; }
+        .scrollable-table { overflow-x: auto; margin-bottom: 1rem; }
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; border-radius: 1rem; overflow: hidden; box-shadow: var(--shadow-sm); }
+        .admin-table th, .admin-table td { border: 1px solid var(--border); padding: 0.7rem 0.5rem; text-align: left; vertical-align: middle; background: white; }
+        .admin-table th { background: #f1f5f9; font-weight: 600; color: var(--primary); cursor: pointer; }
+        .admin-table th:hover { background: #e2e8f0; }
+        .btn-small { background: var(--warning); color: white; border: none; padding: 0.3rem 0.7rem; border-radius: 1.5rem; font-size: 0.7rem; cursor: pointer; transition: 0.2s; margin: 0.1rem; }
+        .btn-small.danger { background: var(--danger); }
+        .btn-small.warning { background: var(--warning); }
+        .btn-small.success { background: var(--success); }
+        .badge-active { background: #d1fae5; color: #065f46; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-blocked { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-pending { background: #fef3c7; color: #92400e; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .badge-orcamento { background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; }
+        .error-msg { color: #e74c3c; font-size: 0.7rem; margin-top: 0.25rem; display: block; }
+        .spinner { width: 48px; height: 48px; border: 4px solid #e2e8f0; border-top: 4px solid var(--secondary); border-radius: 50%; animation: spin 1s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .driver-info { display: flex; align-items: center; gap: 1rem; background: #F1F5F9; padding: 1rem; border-radius: 1rem; margin: 1rem 0; }
+        .driver-avatar i { font-size: 3rem; color: var(--secondary); }
+        .driver-details h4 { margin-bottom: 0.25rem; }
+        .login-required-card { text-align: center; padding: 2rem; background: #FEF9E8; border-radius: 1rem; }
+        .radio-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+        .budget-actions { margin-top: 0.8rem; display: flex; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-sm { padding: 0.4rem 1rem; font-size: 0.8rem; }
+        .password-strength { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+        .strength-bar { height: 4px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 0.25rem; }
+        .strength-bar-fill { height: 100%; width: 0%; transition: width 0.3s, background 0.3s; }
+        .driver-dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .driver-tabs { display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .driver-tab { padding: 0.5rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; }
+        .driver-tab.active { border-bottom-color: var(--secondary); color: var(--secondary); font-weight: 600; }
+        .loading-placeholder { text-align: center; padding: 2rem; color: var(--text-muted); }
+        .login-links { display: flex; justify-content: space-between; margin-top: 1rem; }
+        .login-links a { color: var(--secondary); cursor: pointer; font-size: 0.85rem; text-decoration: none; }
+        .login-links a:hover { text-decoration: underline; }
+        .driver-online-toggle { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1); padding: 0.3rem 1rem; border-radius: 2rem; }
+        .freight-type-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .badge-imediato { background: #fee2e2; color: #991b1b; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; }
+        .info-item { margin-bottom: 0.3rem; }
+        .info-label { font-weight: 600; color: var(--primary); }
+        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0; }
+        .checkbox-group input { width: auto; margin-top: 0; }
+        .terms-link { color: var(--secondary); cursor: pointer; text-decoration: underline; }
+        .terms-content { max-height: 60vh; overflow-y: auto; padding-right: 1rem; }
+        .terms-content h4 { margin: 1rem 0 0.5rem; color: var(--primary); }
+        .terms-content p { margin-bottom: 0.8rem; }
+        .terms-content ul { margin-left: 1.5rem; margin-bottom: 0.8rem; }
+        .terms-content li { margin-bottom: 0.3rem; }
+        
+        /* NOTIFICATION STYLES */
+        .floating-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--notification);
+            color: white;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            z-index: 2000;
+            cursor: pointer;
+            animation: bellPulse 0.5s ease-in-out infinite, bellFadeOut 7s forwards;
+            transition: transform 0.2s;
+        }
+        .floating-bell:hover {
+            transform: scale(1.1);
+        }
+        @keyframes bellPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+            50% { transform: scale(1.15); box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6); }
+        }
+        @keyframes bellFadeOut {
+            0% { opacity: 1; visibility: visible; }
+            70% { opacity: 1; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; display: none; }
+        }
+        
+        .notification-toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--notification), #2563eb);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 2000;
+            font-weight: 500;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            animation: slideUpNotif 0.3s ease, fadeOutNotif 6.5s forwards 0.5s;
+            border-left: 4px solid #fbbf24;
+        }
+        .notification-toast i {
+            font-size: 1.4rem;
+            color: #fbbf24;
+        }
+        @keyframes slideUpNotif {
+            from { opacity: 0; transform: translateX(-50%) translateY(30px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes fadeOutNotif {
+            from { opacity: 1; visibility: visible; }
+            to { opacity: 0; visibility: hidden; display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="site-wrapper">
+        <header class="main-header">
+            <div class="logo-area">
+                <i class="fas fa-truck-moving"></i><span>FreteJá</span>
+                <div class="admin-secret-btn" id="adminSecretBtn"></div>
+            </div>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Menu"><i class="fas fa-bars"></i></button>
+            <div class="nav-links" id="navLinks">
+                <a class="nav-link active" data-page="homePage">Início</a>
+                <a class="nav-link" data-page="imediatoPage">Frete Imediato</a>
+                <a class="nav-link" data-page="orcamentoPage">Orçamento</a>
+                <a class="nav-link" data-page="myRequestsPage">Pedidos</a>
+                <a class="nav-link" data-page="driverPage">Motorista</a>
+                <a class="nav-link" data-page="suportePage">Suporte</a>
+                <a class="nav-link" data-page="clientePerfilPage" id="perfilClienteLink" style="display: none;">Meu Perfil</a>
+            </div>
+            <div class="user-area" id="userArea"></div>
+        </header>
+
+        <!-- Floating WhatsApp Button -->
+        <a href="#" id="whatsappFloatBtn" class="whatsapp-float" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+
+        <div class="page active" id="homePage">
+            <div style="text-align: center; margin-bottom: 2rem;"><h1>Transporte Rápido ou Agendado</h1><p style="color: var(--text-muted);">Escolha a melhor opção para sua carga</p></div>
+            <div class="service-grid">
+                <div class="service-card" data-page="imediatoPage"><i class="fas fa-bolt"></i><h3>Frete Imediato</h3><p>Encontre caminhoneiros disponíveis agora mesmo</p></div>
+                <div class="service-card" data-page="orcamentoPage"><i class="fas fa-calendar-alt"></i><h3>Agendar Orçamento</h3><p>Planeje seu frete para uma data futura</p></div>
+            </div>
+            <div class="form-card"><h3><i class="fas fa-info-circle"></i> Como funciona?</h3><p>Informe origem/destino, distância, tipo de carga e valor desejado. Nossa plataforma conecta você a transportadores parceiros. Após a cotação, você confirma e o motorista entra em contato.</p></div>
+        </div>
+
+        <div class="page" id="imediatoPage">
+            <button class="btn-outline back-home" style="margin-bottom: 1rem;"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <div class="form-card"><h3>Frete Imediato</h3>
+                <div class="form-row"><div class="form-group"><label>Origem</label><input type="text" id="imediatoOrigin" placeholder="Cidade/Endereço" value="Ceilândia, DF"></div>
+                <div class="form-group"><label>Destino</label><input type="text" id="imediatoDestination" placeholder="Cidade/Endereço" value="Núcleo Bandeirante, DF"></div>
+                <div class="form-group"><label>Distância (km)</label><input type="number" id="imediatoDistance" min="1" step="1" value="25" placeholder="Km"></div></div>
+            </div>
+            <div class="form-card"><h4><i class="fas fa-box-open"></i> Local de retirada</h4>
+                <div class="form-row"><div class="form-group"><label>Tipo</label><select id="imediatoResidenciaRetirada"><option value="casa">Casa</option><option value="apartamento">Apartamento</option></select></div>
+                <div class="form-group" id="imediatoAcessoRetiradaGroup" style="display:none;"><label>Acesso</label><select id="imediatoAcessoRetirada"><option value="elevador">Elevador</option><option value="escada">Escada</option></select></div>
+                <div class="form-group" id="imediatoAndarRetiradaGroup" style="display:none;"><label>Andar (1 a 5)</label><input type="number" id="imediatoAndarRetirada" min="1" max="5" value="1"></div></div>
+            </div>
+            <div class="form-card"><h4><i class="fas fa-dolly"></i> Local de entrega</h4>
+                <div class="form-row"><div class="form-group"><label>Tipo</label><select id="imediatoResidenciaEntrega"><option value="casa">Casa</option><option value="apartamento">Apartamento</option></select></div>
+                <div class="form-group" id="imediatoAcessoEntregaGroup" style="display:none;"><label>Acesso</label><select id="imediatoAcessoEntrega"><option value="elevador">Elevador</option><option value="escada">Escada</option></select></div>
+                <div class="form-group" id="imediatoAndarEntregaGroup" style="display:none;"><label>Andar (1 a 5)</label><input type="number" id="imediatoAndarEntrega" min="1" max="5" value="1"></div></div>
+            </div>
+            <div class="form-card">
+                <label><i class="fas fa-truck"></i> Tipo de serviço</label>
+                <div class="radio-group"><label><input type="radio" name="tipoServicoImediato" value="frete" checked> Frete</label><label><input type="radio" name="tipoServicoImediato" value="mudanca"> Mudança</label></div>
+                <label>Descrição dos itens / carga</label><textarea id="imediatoCargo" rows="2" placeholder="Ex: Móveis, eletrodomésticos, caixas..."></textarea>
+                <div class="truck-type"><div class="type-btn active" data-truck="leve"><i class="fas fa-truck-pickup"></i> Leve (até 3t)</div><div class="type-btn" data-truck="pesada"><i class="fas fa-truck"></i> Média/Pesada</div></div>
+                <div class="helper-field"><label>Ajudantes:</label><input type="number" id="imediatoHelpers" min="0" max="10" value="0" step="1"></div>
+                <div class="price-suggestion" id="imediatoPriceSuggestion"><i class="fas fa-chart-line"></i> Preço sugerido: <strong>-</strong></div>
+                <div class="form-group"><label>Valor desejado (R$)</label><input type="number" id="imediatoPrice" step="50" placeholder="Deixe em branco para usar o valor sugerido"></div>
+                <button class="btn-primary request-freight" data-type="imediato" style="width:100%;"><i class="fas fa-paper-plane"></i> Solicitar Frete Imediato</button>
+                <button class="btn-whatsapp request-whatsapp" data-page="imediato" style="margin-top: 0.5rem; width:100%;">
+                    <i class="fab fa-whatsapp"></i> Solicite via WhatsApp
+                </button>
+            </div>
+        </div>
+
+        <div class="page" id="orcamentoPage">
+            <button class="btn-outline back-home" style="margin-bottom: 1rem;"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <div class="form-card"><h3>Orçamento Agendado</h3>
+                <div class="form-row"><div class="form-group"><label>Origem</label><input type="text" id="orcamentoOrigin" value="Ceilândia, DF"></div>
+                <div class="form-group"><label>Destino</label><input type="text" id="orcamentoDestination" value="Núcleo Bandeirante, DF"></div>
+                <div class="form-group"><label>Distância (km)</label><input type="number" id="orcamentoDistance" min="1" step="1" value="25"></div></div>
+            </div>
+            <div class="form-card"><h4>Local de retirada</h4>
+                <div class="form-row"><div class="form-group"><label>Tipo</label><select id="orcamentoResidenciaRetirada"><option value="casa">Casa</option><option value="apartamento">Apartamento</option></select></div>
+                <div class="form-group" id="orcamentoAcessoRetiradaGroup" style="display:none;"><label>Acesso</label><select id="orcamentoAcessoRetirada"><option value="elevador">Elevador</option><option value="escada">Escada</option></select></div>
+                <div class="form-group" id="orcamentoAndarRetiradaGroup" style="display:none;"><label>Andar</label><input type="number" id="orcamentoAndarRetirada" min="1" max="5" value="1"></div></div>
+            </div>
+            <div class="form-card"><h4>Local de entrega</h4>
+                <div class="form-row"><div class="form-group"><label>Tipo</label><select id="orcamentoResidenciaEntrega"><option value="casa">Casa</option><option value="apartamento">Apartamento</option></select></div>
+                <div class="form-group" id="orcamentoAcessoEntregaGroup" style="display:none;"><label>Acesso</label><select id="orcamentoAcessoEntrega"><option value="elevador">Elevador</option><option value="escada">Escada</option></select></div>
+                <div class="form-group" id="orcamentoAndarEntregaGroup" style="display:none;"><label>Andar</label><input type="number" id="orcamentoAndarEntrega" min="1" max="5" value="1"></div></div>
+            </div>
+            <div class="form-card">
+                <label>Tipo de serviço</label><div class="radio-group"><label><input type="radio" name="tipoServicoOrcamento" value="frete" checked> Frete</label><label><input type="radio" name="tipoServicoOrcamento" value="mudanca"> Mudança</label></div>
+                <label>Descrição</label><textarea id="orcamentoCargo" rows="2" placeholder="Ex: Móveis, eletrodomésticos, caixas..."></textarea>
+                <div class="truck-type"><div class="type-btn active" data-truck="leve">Leve</div><div class="type-btn" data-truck="pesada">Pesada</div></div>
+                <div class="helper-field"><label>Ajudantes:</label><input type="number" id="orcamentoHelpers" min="0" value="0"></div>
+                <label>Data e horário</label><input type="datetime-local" id="scheduledDateTime" step="60">
+                <label>Valor desejado (R$)</label><input type="number" id="orcamentoPrice" step="50">
+                <div class="price-suggestion" id="orcamentoPriceSuggestion"></div>
+                <button class="btn-primary request-freight" data-type="orcamento" style="width:100%;"><i class="fas fa-calendar-check"></i> Solicitar Orçamento</button>
+                <button class="btn-whatsapp request-whatsapp" data-page="orcamento" style="margin-top: 0.5rem; width:100%;">
+                    <i class="fab fa-whatsapp"></i> Solicite via WhatsApp
+                </button>
+            </div>
+        </div>
+
+        <div class="page" id="myRequestsPage"><h2><i class="fas fa-clipboard-list"></i> Meus pedidos</h2><div id="historyContainer"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando...</div></div></div>
+
+        <div class="page" id="driverPage">
+            <div id="driverNotLogged" style="text-align: center; padding: 3rem;">
+                <i class="fas fa-truck" style="font-size: 4rem; color: var(--secondary);"></i><h2>Área do Motorista</h2>
+                <p>Faça login ou cadastre-se para oferecer seus serviços de frete.</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <button id="showDriverLoginBtn" class="btn-primary">Login Motorista</button>
+                    <button id="showDriverRegisterBtn" class="btn-outline">Seja Motorista</button>
+                </div>
+            </div>
+            <div id="driverLoggedPanel" style="display: none;">
+                <div class="driver-dashboard-header">
+                    <h2><i class="fas fa-truck"></i> Painel do Motorista</h2>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div class="driver-online-toggle" id="driverOnlineToggle">
+                            <span id="onlineStatusText">Offline</span>
+                            <button id="toggleOnlineBtn" class="btn-offline">Ficar Online</button>
+                        </div>
+                        <button id="driverLogoutBtn" class="btn-outline btn-sm"><i class="fas fa-sign-out-alt"></i> Sair</button>
+                    </div>
+                </div>
+                <div class="driver-tabs">
+                    <div class="driver-tab active" data-tab="available">Fretes Disponíveis</div>
+                    <div class="driver-tab" data-tab="orcamentos">Orçamentos</div>
+                    <div class="driver-tab" data-tab="myoffers">Minhas Ofertas</div>
+                    <div class="driver-tab" data-tab="accepted">Meus Fretes Aceitos</div>
+                    <!-- Aba Meu Perfil será adicionada via JS para não duplicar -->
+                </div>
+                <div id="driverTabAvailable" class="driver-tab-content"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando...</div></div>
+                <div id="driverTabOrcamentos" class="driver-tab-content" style="display:none;"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando orçamentos...</div></div>
+                <div id="driverTabMyoffers" class="driver-tab-content" style="display:none;"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando...</div></div>
+                <div id="driverTabAccepted" class="driver-tab-content" style="display:none;"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando...</div></div>
+            </div>
+        </div>
+
+        <!-- Página de Suporte -->
+        <div class="page" id="suportePage">
+            <button class="btn-outline back-home" style="margin-bottom: 1rem;"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <h2><i class="fas fa-headset"></i> Central de Suporte</h2>
+            <p style="margin-bottom: 2rem;">Estamos aqui para ajudar! Entre em contato conosco ou tire suas dúvidas nas perguntas frequentes.</p>
+            
+            <div class="support-card">
+                <h3><i class="fas fa-phone-alt"></i> Canais de Atendimento</h3>
+                <div class="support-contact-list">
+                    <div class="support-contact-item">
+                        <i class="fab fa-whatsapp"></i>
+                        <div>
+                            <div>WhatsApp</div>
+                            <a href="https://wa.me/5561996213629" target="_blank">(61) 99621-3629</a>
+                        </div>
+                    </div>
+                    <div class="support-contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <div>
+                            <div>E-mail</div>
+                            <a href="mailto:contato@freteja.com.br">contato@freteja.com.br</a>
+                        </div>
+                    </div>
+                    <div class="support-contact-item">
+                        <i class="fab fa-instagram"></i>
+                        <div>
+                            <div>Instagram</div>
+                            <a href="https://instagram.com/fretejaoficial" target="_blank">@fretejaoficial</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="support-card">
+                <h3><i class="fas fa-clock"></i> Horário de Atendimento</h3>
+                <p><strong>Segunda a Sexta:</strong> 08h às 18h</p>
+                <p><strong>Sábados:</strong> 08h às 12h</p>
+                <p><strong>Domingos e Feriados:</strong> Atendimento online via WhatsApp</p>
+            </div>
+
+            <div class="support-card">
+                <h3><i class="fas fa-question-circle"></i> Perguntas Frequentes (FAQ)</h3>
+                
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Como funciona o frete imediato?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        O frete imediato conecta você a motoristas disponíveis na hora. Basta preencher origem, destino e sua carga. Em até 30 segundos, motoristas online recebem sua solicitação e você pode escolher a melhor oferta.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Como faço um orçamento agendado?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Na aba "Orçamento", preencha todos os detalhes da sua mudança ou frete, incluindo data e horário desejados. Motoristas parceiros poderão fazer propostas e você escolhe a melhor.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Preciso de ajuda com minha mudança? A FreteJá fornece ajudantes?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Sim! Ao solicitar seu frete ou orçamento, você pode selecionar a quantidade de ajudantes necessários. O custo é calculado automaticamente e incluso no valor final.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Como me torno um motorista parceiro?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Acesse a aba "Motorista" e clique em "Seja Motorista". Preencha seus dados, tipo de caminhão e aguarde a aprovação. Após aprovado, você poderá receber solicitações de frete.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Qual o prazo para receber uma proposta no orçamento agendado?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Os motoristas parceiros são notificados imediatamente. Normalmente você recebe propostas em até 24 horas, dependendo da disponibilidade de motoristas na sua região.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>❓ Esqueci minha senha. Como recuperar?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Na tela de login, clique em "Esqueci a senha". Você precisará informar seu CPF e responder à pergunta de segurança cadastrada para redefinir sua senha.
+                    </div>
+                </div>
+            </div>
+
+            <div class="support-card">
+                <h3><i class="fas fa-comment-dots"></i> Fale Conosco</h3>
+                <p>Tem alguma dúvida ou sugestão? Nossa equipe está pronta para atender você!</p>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <a href="https://wa.me/5561996213629" target="_blank" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-whatsapp"></i> Chamar no WhatsApp
+                    </a>
+                    <a href="mailto:contato@freteja.com.br" class="btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-envelope"></i> Enviar E-mail
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página Perfil do Cliente (nova) -->
+        <div class="page" id="clientePerfilPage">
+            <button class="btn-outline back-home" style="margin-bottom: 1rem;"><i class="fas fa-arrow-left"></i> Voltar</button>
+            <div class="form-card">
+                <h2><i class="fas fa-user-circle"></i> Meu Perfil</h2>
+                <div class="avatar-upload">
+                    <div class="profile-avatar" id="clienteAvatarPreview"><i class="fas fa-user"></i></div>
+                    <label for="clienteFotoInput"><i class="fas fa-camera"></i> Alterar Foto</label>
+                    <input type="file" id="clienteFotoInput" accept="image/*">
+                </div>
+                <div class="form-group"><label>Nome completo</label><input type="text" id="perfilClienteNome"></div>
+                <div class="form-group"><label>CPF</label><input type="text" id="perfilClienteCpf" readonly disabled></div>
+                <div class="form-group"><label>Telefone (WhatsApp)</label><input type="tel" id="perfilClienteTelefone"></div>
+                <div class="form-group"><label>Endereço</label><input type="text" id="perfilClienteEndereco" placeholder="Rua, número, bairro, cidade"></div>
+                <div class="form-group"><label>Data de Nascimento</label><input type="date" id="perfilClienteNascimento"></div>
+                <div class="form-group"><label>Nova Senha (deixe em branco para manter)</label><input type="password" id="perfilClienteNovaSenha" placeholder="********"></div>
+                <div class="form-group"><label>Confirmar Nova Senha</label><input type="password" id="perfilClienteConfirmSenha"></div>
+                <button id="salvarPerfilClienteBtn" class="btn-primary">Salvar Alterações</button>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>FreteJá - Soluções logísticas | Contato comercial: (61) 99621-3629 | <i class="fab fa-instagram"></i> @fretejaoficial</p>
+            <p>&copy; 2025 - Transporte ágil e transparente | <a class="footer-link" id="openTermsFooter">Termos de Uso</a></p>
+        </footer>
+    </div>
+
+    <!-- MODAL DE TERMOS DE USO (adicionado) -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-modal" id="closeTermsModalBtn">&times;</span>
+            <div class="admin-header">
+                <i class="fas fa-file-contract"></i>
+                <h2>Termos de Uso - FreteJá</h2>
+                <p>Leia atentamente antes de utilizar a plataforma</p>
+            </div>
+            <div class="terms-content">
+                <p><strong>Última atualização:</strong> 18 de abril de 2025</p>
+                
+                <h4>1. Natureza da Plataforma</h4>
+                <p>A FreteJá é uma plataforma tecnológica de conexão, NÃO sendo:</p>
+                <ul>
+                    <li>Prestadora de serviços de transporte</li>
+                    <li>Transportadora ou empresa de logística</li>
+                    <li>Empregadora dos motoristas</li>
+                    <li>Intermediadora de pagamentos</li>
+                    <li>Seguradora das cargas ou veículos</li>
+                </ul>
+
+                <h4>2. Isenção de Responsabilidade</h4>
+                <p>A FreteJá NÃO se responsabiliza por:</p>
+                <ul>
+                    <li>A idoneidade, capacidade ou conduta dos motoristas</li>
+                    <li>Atrasos, cancelamentos ou desistências</li>
+                    <li>Danos, avarias ou extravios de carga</li>
+                    <li>Acidentes ou ocorrências durante o transporte</li>
+                    <li>Qualquer problema na execução do serviço contratado</li>
+                </ul>
+
+                <h4>3. Pagamentos</h4>
+                <p>A FreteJá NÃO intermedeia pagamentos. Cliente e motorista devem:</p>
+                <ul>
+                    <li>Negociar diretamente o valor</li>
+                    <li>Combinar a forma de pagamento (dinheiro, PIX, transferência)</li>
+                    <li>Resolver eventuais inadimplências entre si</li>
+                </ul>
+                <p>A plataforma NÃO se responsabiliza por não pagamento do cliente ao motorista, cobrança indevida do motorista ao cliente ou qualquer disputa financeira entre as partes.</p>
+
+                <h4>4. Veracidade das Informações</h4>
+                <p>A FreteJá NÃO se responsabiliza pela veracidade das informações fornecidas pelos usuários, incluindo dados cadastrais (nome, CPF, telefone), endereços de origem e destino, descrição da carga e disponibilidade do motorista.</p>
+
+                <h4>5. Responsabilidade do Usuário</h4>
+                <p>O usuário reconhece e aceita que:</p>
+                <ul>
+                    <li>A contratação do serviço de transporte é de sua exclusiva responsabilidade</li>
+                    <li>O risco da prestação do serviço é integralmente do contratante</li>
+                    <li>A plataforma atua apenas como meio de conexão, sem qualquer ingerência na execução</li>
+                </ul>
+
+                <h4>6. Garantias e Disponibilidade</h4>
+                <p>A plataforma é fornecida "no estado em que se encontra" (AS IS), sem garantias de disponibilidade contínua do serviço, ausência de erros ou falhas técnicas, ou compatibilidade com dispositivos específicos.</p>
+
+                <h4>7. Limitação de Danos</h4>
+                <p>Em nenhuma hipótese a FreteJá será responsável por danos diretos, indiretos, incidentais ou consequenciais, incluindo lucros cessantes, danos morais ou materiais, ou custos de contratação de serviços alternativos.</p>
+
+                <h4>8. Deveres do Usuário</h4>
+                <p>O usuário declara estar ciente de que deve:</p>
+                <ul>
+                    <li>Verificar a documentação do motorista antes de contratar</li>
+                    <li>Solicitar comprovantes e recibos do serviço</li>
+                    <li>Manter registros da negociação (conversas, acordos)</li>
+                    <li>Contratar seguro próprio para cargas de alto valor</li>
+                </ul>
+
+                <h4>9. Resolução de Conflitos</h4>
+                <p>Conflitos entre cliente e motorista devem ser resolvidos diretamente entre as partes. A FreteJá poderá, a seu exclusivo critério, auxiliar na mediação, mas NÃO possui obrigação legal de fazê-lo.</p>
+
+                <h4>10. Aceitação</h4>
+                <p>Ao utilizar a plataforma, o usuário declara ter lido, compreendido e aceitado integralmente todos os termos acima, isentando a FreteJá de qualquer responsabilidade pelos serviços contratados entre as partes.</p>
+            </div>
+            <button class="btn-primary" id="closeTermsModalOkBtn" style="margin-top: 1rem;">Entendi e Aceito</button>
+        </div>
+    </div>
+
+    <!-- MODAIS EXISTENTES (mantidos exatamente iguais) -->
+    <div id="searchingModal" class="modal"><div class="modal-content" style="text-align:center;"><i class="fas fa-truck-moving" style="font-size:3rem;color:var(--secondary);"></i><div class="searching-text">Procurando motoristas online...</div><div class="spinner"></div><p>Aguardando respostas dos motoristas (30 segundos)</p></div></div>
+    <div id="driverResponsesModal" class="modal"><div class="modal-content"><h3><i class="fas fa-truck-ramp-box"></i> Respostas dos Motoristas</h3><div id="driverResponsesList"></div><button class="btn-outline" id="closeResponsesBtn" style="width:100%; margin-top:1rem;">Fechar</button></div></div>
+    <div id="offersModal" class="modal"><div class="modal-content"><h3><i class="fas fa-truck-ramp-box"></i> Ofertas Recebidas</h3><div id="offersList"></div><button class="btn-outline" id="closeOffersBtn" style="width:100%;">Fechar</button></div></div>
+    <div id="driverContactModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeDriverModalBtn">&times;</span><div style="text-align:center;"><i class="fas fa-handshake" style="font-size:2.5rem;color:var(--secondary);"></i><h3>Frete aceito com sucesso!</h3><p>Seu motorista já está a caminho.</p></div><div class="driver-info" id="driverInfoContainer"></div><button id="whatsappContactBtn" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> Falar via WhatsApp</button><button id="closeDriverAfterContact" class="btn-outline" style="width:100%;">Ir para meus pedidos</button></div></div>
+    <div id="budgetInfoModal" class="modal"><div class="modal-content" style="text-align:center;"><i class="fas fa-calendar-check" style="font-size:3rem;color:var(--secondary);"></i><h3>Orçamento Agendado!</h3><p>Seus orçamentos estarão disponíveis em breve! Você poderá visualizá-los e receber propostas na aba <strong>Pedidos</strong>.</p><button id="closeBudgetModalBtn" class="btn-primary">OK</button></div></div>
+    <div id="recoveryModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeRecoveryModalBtn">&times;</span><div class="recovery-header"><i class="fas fa-lock"></i><h2>Recuperar Senha</h2><p>Responda à pergunta de segurança</p></div><div class="recovery-field"><label>CPF</label><input type="text" id="recoveryCpf" placeholder="Digite seu CPF"></div><div id="securityQuestionDiv" style="display:none;"><div class="recovery-field"><label>Pergunta de segurança</label><input type="text" id="recoveryQuestionDisplay" readonly style="background:#f1f5f9;"></div><div class="recovery-field"><label>Sua resposta</label><input type="text" id="recoveryAnswer" placeholder="Digite a resposta"></div><div class="recovery-field"><label>Nova senha</label><input type="password" id="newPasswordRecovery" placeholder="Mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número"></div><div class="recovery-field"><label>Confirmar nova senha</label><input type="password" id="confirmNewPasswordRecovery" placeholder="Confirme a nova senha"></div><button id="resetBySecurityBtn" class="recovery-btn">Redefinir senha</button></div><button id="fetchSecurityQuestionBtn" class="recovery-btn">Buscar pergunta</button></div></div>
+    <div id="loginModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeLoginModalBtn">&times;</span><div class="login-header"><i class="fas fa-truck-fast"></i><h2>FreteJá</h2><p>Faça login para continuar</p></div><div class="login-field"><label>CPF</label><input type="text" id="loginCpf" placeholder="Digite seu CPF (apenas números)"></div><div class="login-field"><label>Senha</label><input type="password" id="loginSenha" placeholder="Digite sua senha"></div><div id="loginError" class="error-msg"></div><button id="entrarBtn" class="login-btn">Entrar</button><div class="login-links"><a id="criarContaLink">Criar uma conta</a><a id="esqueciSenhaLink">Esqueci a senha</a></div></div></div>
+    <div id="registerModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeRegisterModalBtn">&times;</span><div class="register-header"><i class="fas fa-user-plus"></i><h2>Criar conta</h2><p>Preencha os dados abaixo</p></div><div class="register-field"><label>Nome completo</label><input type="text" id="regNome" placeholder="Seu nome"><div id="regNomeError" class="error-msg"></div></div><div class="register-field"><label>CPF (apenas números)</label><input type="text" id="regCpf" placeholder="Apenas números" maxlength="11"><div id="regCpfError" class="error-msg"></div></div><div class="register-field"><label>Telefone (WhatsApp)</label><input type="tel" id="regTelefone" placeholder="(DDD) 9 9999-9999"><div id="regTelefoneError" class="error-msg"></div></div><div class="register-field"><label>Senha</label><input type="password" id="regSenha" placeholder="Mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número"><div id="regSenhaError" class="error-msg"></div><div class="password-strength"><div class="strength-bar"><div class="strength-bar-fill" id="strengthFill"></div></div><div class="strength-text" id="strengthText"></div></div></div><div class="register-field"><label>Confirmar senha</label><input type="password" id="regConfirmSenha"><div id="regConfirmError" class="error-msg"></div></div><div class="register-field"><label>Pergunta de segurança</label><select id="regPergunta"><option value="Qual é o nome do seu primeiro animal de estimação?">Qual é o nome do seu primeiro animal de estimação?</option><option value="Qual é o nome da sua mãe?">Qual é o nome da sua mãe?</option><option value="Qual é a sua cidade natal?">Qual é a sua cidade natal?</option><option value="Qual é o seu filme favorito?">Qual é o seu filme favorito?</option></select></div><div class="register-field"><label>Resposta da pergunta</label><input type="text" id="regResposta" placeholder="Digite a resposta (case sensitive)"></div>
+        <!-- ADICIONADO: checkbox de aceite dos termos -->
+        <div class="checkbox-group">
+            <input type="checkbox" id="regAcceptTerms">
+            <label for="regAcceptTerms">Li e aceito os <span class="terms-link" id="regTermsLink">Termos de Uso</span></label>
+        </div>
+        <button id="registrarBtn" class="register-btn">Cadastrar</button>
+        <div class="login-links" style="justify-content:center;"><a id="voltarLoginLink">Já tenho conta → Fazer login</a></div>
+    </div></div>
+
+    <!-- MODAIS MOTORISTA -->
+    <div id="driverLoginModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeDriverLoginModalBtn">&times;</span><div class="login-header"><i class="fas fa-truck"></i><h2>Área do Motorista</h2><p>Faça login com seu CPF</p></div><div class="login-field"><label>CPF (apenas números)</label><input type="text" id="driverLoginCpf" placeholder="Digite seu CPF"></div><div class="login-field"><label>Senha</label><input type="password" id="driverLoginSenha" placeholder="Digite sua senha"></div><div id="driverLoginError" class="error-msg"></div><button id="driverEntrarBtn" class="login-btn">Entrar</button><div class="login-links"><a id="driverCadastrarLink">Ainda não sou motorista? Cadastre-se</a></div></div></div>
+    <div id="driverRegisterModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeDriverRegisterModalBtn">&times;</span><div class="register-header"><i class="fas fa-user-plus"></i><h2>Seja Motorista Parceiro</h2><p>Cadastre-se para oferecer fretes</p></div><div class="register-field"><label>Nome completo</label><input type="text" id="driverRegNome" placeholder="Seu nome"></div><div class="register-field"><label>CPF (apenas números)</label><input type="text" id="driverRegCpf" placeholder="Apenas números" maxlength="11"></div><div class="register-field"><label>Telefone (WhatsApp)</label><input type="tel" id="driverRegTelefone" placeholder="(DDD) 9 9999-9999"></div><div class="register-field"><label>Tipo de Caminhão</label><select id="driverRegTruck"><option value="HR Baú">HR Baú</option><option value="Iveco Daily">Iveco Daily</option><option value="VUC">VUC</option><option value="Caminhão 3/4">Caminhão 3/4</option><option value="Carreta">Carreta</option></select></div><div class="register-field"><label>Senha</label><input type="password" id="driverRegSenha" placeholder="Mínimo 6 caracteres"></div><div class="register-field"><label>Confirmar senha</label><input type="password" id="driverRegConfirmSenha"></div>
+        <!-- ADICIONADO: checkbox de aceite dos termos -->
+        <div class="checkbox-group">
+            <input type="checkbox" id="driverRegAcceptTerms">
+            <label for="driverRegAcceptTerms">Li e aceito os <span class="terms-link" id="driverRegTermsLink">Termos de Uso</span></label>
+        </div>
+        <button id="driverRegistrarBtn" class="register-btn">Cadastrar</button>
+        <div class="login-links" style="justify-content:center;"><a id="driverVoltarLoginLink">Já sou motorista → Fazer login</a></div>
+    </div></div>
+    
+    <div id="driverReceiveModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeReceiveModalBtn">&times;</span><h3><i class="fas fa-bell"></i> Nova Solicitação de Frete Imediato!</h3><div id="solicitationInfo"></div><div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;"><button id="acceptFreightBtn" class="btn-primary">Aceitar (R$ <span id="acceptPrice">0</span>)</button><button id="makeCounterOfferBtn" class="btn-outline">Fazer Contra-Oferta</button><button id="declineFreightBtn" class="btn-small danger">Recusar</button></div><div id="counterOfferDiv" style="display:none; margin-top:1rem;"><div class="form-group"><label>Seu valor (R$)</label><input type="number" id="driverCounterValue" placeholder="Valor proposto"></div><div class="form-group"><label>Mensagem</label><textarea id="driverCounterMessage" rows="2" placeholder="Ex: Inclui ajudante..."></textarea></div><button id="sendDriverCounterBtn" class="btn-primary">Enviar Contra-Oferta</button></div></div></div>
+    <div id="orcamentoOfferModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeOrcamentoOfferModalBtn">&times;</span><h3><i class="fas fa-hand-holding-usd"></i> Fazer Proposta para Orçamento</h3><div id="orcamentoOfferInfo"></div><div class="form-group"><label>Seu valor (R$)</label><input type="number" id="orcamentoOfferValue" step="10" placeholder="Valor proposto"></div><div class="form-group"><label>Mensagem (opcional)</label><textarea id="orcamentoOfferMessage" rows="2" placeholder="Ex: Inclui ajudante, seguro..."></textarea></div><div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;"><button id="sendOrcamentoOfferBtn" class="btn-primary">Enviar Proposta</button><button id="cancelOrcamentoOfferBtn" class="btn-outline">Cancelar</button></div></div></div>
+    <div id="counterOfferModal" class="modal"><div class="modal-content"><h3><i class="fas fa-hand-holding-usd"></i> Enviar Proposta (Contra-Oferta)</h3><p id="counterOfferRequestInfo"></p><div class="form-group"><label>Seu valor (R$)</label><input type="number" id="counterOfferValue" step="10" placeholder="Valor proposto"></div><div class="form-group"><label>Mensagem (opcional)</label><textarea id="counterOfferMessage" rows="2" placeholder="Ex: Inclui ajudante..."></textarea></div><div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;"><button id="sendCounterOfferBtn" class="btn-primary">Enviar Proposta</button><button id="cancelCounterOfferBtn" class="btn-outline">Cancelar</button></div></div></div>
+    <div id="clientCounterOfferModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeClientCounterModalBtn">&times;</span><h3><i class="fas fa-hand-holding-usd"></i> Enviar Contra-Oferta ao Motorista</h3><p id="clientCounterOfferInfo"></p><div class="form-group"><label>Seu valor (R$)</label><input type="number" id="clientCounterOfferValue" step="10" placeholder="Valor proposto"></div><div class="form-group"><label>Mensagem (opcional)</label><textarea id="clientCounterOfferMessage" rows="2" placeholder="Ex: Posso pagar R$ X..."></textarea></div><div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;"><button id="sendClientCounterOfferBtn" class="btn-primary">Enviar Proposta</button><button id="cancelClientCounterOfferBtn" class="btn-outline">Cancelar</button></div></div></div>
+
+    <div id="adminLoginModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeAdminLoginModalBtn">&times;</span><div class="admin-header"><i class="fas fa-user-shield"></i><h2>Acesso Administrador</h2><p>Credenciais restritas</p></div><div class="login-field"><label>Usuário</label><input type="text" id="adminUser" placeholder="Nome do administrador"></div><div class="login-field"><label>Senha</label><input type="password" id="adminPassword" placeholder="Senha"></div><div id="adminLoginError" class="error-msg"></div><button id="adminLoginBtn" class="admin-login-btn">Entrar</button></div></div>
+    <div id="adminPanelModal" class="modal"><div class="modal-content" style="max-width: 1000px;"><span class="close-modal" id="closeAdminPanelBtn">&times;</span><div class="admin-header"><i class="fas fa-chart-line"></i><h2>Painel de Controle Geral</h2><p>Visão administrativa do sistema</p></div><div id="adminPanelContent"><div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando...</div></div><button id="adminLogoutBtn" class="btn-outline" style="margin-top: 1rem;">Sair do Painel Admin</button></div></div>
+    <div id="adminResetPasswordModal" class="modal"><div class="modal-content"><span class="close-modal" id="closeResetModalBtn">&times;</span><div class="admin-header"><i class="fas fa-key"></i><h2>Redefinir Senha</h2><p id="resetUserInfo"></p></div><div class="login-field"><label>Nova Senha</label><input type="password" id="resetNewPassword" placeholder="Digite a nova senha"></div><div class="login-field"><label>Confirmar Senha</label><input type="password" id="resetConfirmPassword" placeholder="Confirme a nova senha"></div><div id="resetErrorMsg" class="error-msg"></div><button id="confirmResetBtn" class="admin-login-btn">Salvar nova senha</button></div></div>
+    <div id="customConfirmModal" class="modal"><div class="modal-content" style="max-width: 400px;"><div class="admin-header"><i class="fas fa-exclamation-triangle"></i><h2 id="confirmTitle">Confirmação</h2><p id="confirmMessage">Tem certeza?</p></div><div class="confirm-modal-buttons"><button id="confirmYesBtn" class="btn-primary">Sim</button><button id="confirmNoBtn" class="btn-outline">Cancelar</button></div></div></div>
+
+    <script>
+        // ========== CONFIGURAÇÕES ==========
+        const CONFIG = {
+            PRICE_LEVE_KM: 2.5, PRICE_PESADA_KM: 4.0, ADICIONAL_LEVE: 150, ADICIONAL_PESADA: 300,
+            PRECO_AJUDANTE_BASE: 120, PRECO_ESCOADA_POR_ANDAR: 20, MULTIPLICADOR_DISTANCIA: 2, ADICIONAL_ANDAR_ESCADA: 30,
+            ADICIONAL_POR_KM: 3, SISTEMA_TAXA_EXTRA: 50
+        };
+
+        // ========== FIREBASE INIT ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7an5kknnt1EPf7d6FJdFlneaDVBe3Ggw",
+            authDomain: "freteja-64d79.firebaseapp.com",
+            projectId: "freteja-64d79",
+            storageBucket: "freteja-64d79.firebasestorage.app",
+            messagingSenderId: "340231398385",
+            appId: "1:340231398385:web:a02b7caa00c02b02ba5a50"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Coleções
+        const usersCol = db.collection('users');
+        const driversCol = db.collection('drivers');
+        const requestsCol = db.collection('requests');
+        const driverOffersCol = db.collection('driverOffers');
+        const clientCounterOffersCol = db.collection('clientCounterOffers');
+        const directAcceptRequestsCol = db.collection('directAcceptRequests');
+        const immediateResponsesCol = db.collection('immediateResponses');
+
+        // Variáveis globais
+        let selectedTruckType = 'leve';
+        let currentRequest = null;
+        let isLoggedIn = false;
+        let currentUserCpf = "";
+        let currentUserName = "";
+        let pendingAccept = null;
+
+        let isDriverLoggedIn = false;
+        let currentDriverCpf = "";
+        let currentDriverData = null;
+        let currentCounterOfferRequestId = null;
+        let currentImmediateRequest = null;
+        let pendingDriverResponseId = null;
+        let currentOrcamentoRequest = null;
+
+        let isAdminLoggedIn = false;
+        let pendingReset = { type: null, cpf: null, name: null };
+        let currentResponseListener = null;
+        
+        // Variáveis para controle do som
+        let currentNotificationAudio = null;
+
+        // ========== SISTEMA DE NOTIFICAÇÃO SONORA ==========
+        function playNotificationSound() {
+            try {
+                if (currentNotificationAudio) {
+                    try {
+                        currentNotificationAudio.stop();
+                        currentNotificationAudio.disconnect();
+                    } catch(e) {}
+                    currentNotificationAudio = null;
+                }
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return;
+                const audioCtx = new AudioContextClass();
+                currentNotificationAudio = audioCtx;
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.connect(audioCtx.destination);
+                const startTime = audioCtx.currentTime;
+                const duration = 7;
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 880;
+                const modulator = audioCtx.createOscillator();
+                modulator.type = 'sine';
+                modulator.frequency.value = 4;
+                const modGain = audioCtx.createGain();
+                modGain.gain.value = 15;
+                modulator.connect(modGain);
+                modGain.connect(oscillator.frequency);
+                oscillator.connect(gainNode);
+                oscillator.start();
+                modulator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+                oscillator.stop(startTime + duration);
+                modulator.stop(startTime + duration);
+                setTimeout(() => {
+                    if (currentNotificationAudio === audioCtx) {
+                        try { audioCtx.close(); } catch(e) {}
+                        currentNotificationAudio = null;
+                    }
+                }, duration * 1000 + 500);
+            } catch (error) { console.warn("Erro ao tocar som:", error); }
+        }
+        function showNotificationToast(title, message, icon = 'fas fa-bell') {
+            const existingToasts = document.querySelectorAll('.notification-toast');
+            existingToasts.forEach(toast => toast.remove());
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.innerHTML = `<i class="${icon}"></i><div><strong style="display: block;">${escapeHtml(title)}</strong><small>${escapeHtml(message)}</small></div>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { if (toast && toast.remove) toast.remove(); }, 7000);
+        }
+        function showFloatingBell() {
+            const existingBell = document.querySelector('.floating-bell');
+            if (existingBell) existingBell.remove();
+            const bell = document.createElement('div');
+            bell.className = 'floating-bell';
+            bell.innerHTML = '<i class="fas fa-bell"></i>';
+            bell.addEventListener('click', () => { playNotificationSound(); bell.remove(); });
+            document.body.appendChild(bell);
+            setTimeout(() => { if (bell && bell.remove) bell.remove(); }, 7000);
+        }
+        function triggerNotification(title, message, icon = 'fas fa-bell') {
+            playNotificationSound();
+            showNotificationToast(title, message, icon);
+            showFloatingBell();
+            console.log(`[NOTIFICAÇÃO] ${title}: ${message}`);
+        }
+
+        // ========== FUNÇÕES AUXILIARES ==========
+        function validarCPF(cpf) {
+            cpf = cpf.replace(/[^\d]+/g, '');
+            if (cpf.length !== 11) return false;
+            if (/^(\d)\1{10}$/.test(cpf)) return false;
+            let soma = 0, resto;
+            for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            if (resto !== parseInt(cpf.substring(9, 10))) return false;
+            soma = 0;
+            for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
+            resto = (soma * 10) % 11;
+            return resto === parseInt(cpf.substring(10, 11));
+        }
+        function validarSenhaCliente(senha) { return senha.length >= 8 && /[A-Z]/.test(senha) && /[a-z]/.test(senha) && /[0-9]/.test(senha); }
+        function validarSenhaMotorista(senha) { return senha.length >= 6; }
+        function showToast(msg) { const t = document.createElement('div'); t.className = 'toast-msg'; t.innerText = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const link = document.querySelector(`.nav-link[data-page="${pageId}"]`);
+            if (link) link.classList.add('active');
+            if (pageId === 'myRequestsPage') renderRequestsPage();
+            if (pageId === 'driverPage') renderDriverPanel();
+            const navLinks = document.getElementById('navLinks');
+            if (navLinks && navLinks.classList.contains('open')) {
+                navLinks.classList.remove('open');
+                const hamburgerBtn = document.getElementById('hamburgerBtn');
+                if (hamburgerBtn) {
+                    const icon = hamburgerBtn.querySelector('i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        }
+        function customConfirm(message, title = "Confirmação") {
+            return new Promise((resolve) => {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMessage').innerText = message;
+                const modal = document.getElementById('customConfirmModal');
+                modal.style.display = 'flex';
+                const yesBtn = document.getElementById('confirmYesBtn');
+                const noBtn = document.getElementById('confirmNoBtn');
+                const handleYes = () => { modal.style.display = 'none'; yesBtn.removeEventListener('click', handleYes); noBtn.removeEventListener('click', handleNo); resolve(true); };
+                const handleNo = () => { modal.style.display = 'none'; yesBtn.removeEventListener('click', handleYes); noBtn.removeEventListener('click', handleNo); resolve(false); };
+                yesBtn.addEventListener('click', handleYes);
+                noBtn.addEventListener('click', handleNo);
+            });
+        }
+        function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])) || ''; }
+
+        // ========== FUNÇÕES FIRESTORE (mantidas integralmente) ==========
+        async function getUserByCpf(cpf) { const doc = await usersCol.doc(cpf).get(); return doc.exists ? { id: doc.id, ...doc.data() } : null; }
+        async function updateUser(cpf, data) { await usersCol.doc(cpf).set(data, { merge: true }); }
+        async function getDriverByCpf(cpf) { const doc = await driversCol.doc(cpf).get(); return doc.exists ? { id: doc.id, ...doc.data() } : null; }
+        async function updateDriver(cpf, data) { await driversCol.doc(cpf).set(data, { merge: true }); }
+        async function getDrivers() { const snapshot = await driversCol.get(); return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); }
+        async function getRequests() { const snapshot = await requestsCol.get(); return snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() })); }
+        async function addRequest(request) { await requestsCol.doc(request.id.toString()).set(request); }
+        async function updateRequest(id, data) { await requestsCol.doc(id.toString()).update(data); }
+        async function saveRequests(requests) { const batch = db.batch(); const snapshot = await requestsCol.get(); snapshot.forEach(doc => batch.delete(doc.ref)); requests.forEach(r => { const ref = requestsCol.doc(r.id.toString()); batch.set(ref, r); }); await batch.commit(); }
+        async function getDriverOffers() { const snapshot = await driverOffersCol.get(); return snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() })); }
+        async function addDriverOffer(offer) { await driverOffersCol.doc(offer.id.toString()).set(offer); }
+        async function updateDriverOffer(id, data) { await driverOffersCol.doc(id.toString()).update(data); }
+        async function saveDriverOffers(offers) { const batch = db.batch(); const snapshot = await driverOffersCol.get(); snapshot.forEach(doc => batch.delete(doc.ref)); offers.forEach(o => { const ref = driverOffersCol.doc(o.id.toString()); batch.set(ref, o); }); await batch.commit(); }
+        async function getClientCounterOffers() { const snapshot = await clientCounterOffersCol.get(); return snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() })); }
+        async function addClientCounterOffer(offer) { await clientCounterOffersCol.doc(offer.id.toString()).set(offer); }
+        async function saveClientCounterOffers(offers) { const batch = db.batch(); const snapshot = await clientCounterOffersCol.get(); snapshot.forEach(doc => batch.delete(doc.ref)); offers.forEach(o => { const ref = clientCounterOffersCol.doc(o.id.toString()); batch.set(ref, o); }); await batch.commit(); }
+        async function getDirectAcceptRequests() { const snapshot = await directAcceptRequestsCol.get(); return snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() })); }
+        async function addDirectAcceptRequest(req) { await directAcceptRequestsCol.doc(req.id.toString()).set(req); }
+        async function deleteDirectAcceptRequest(id) { await directAcceptRequestsCol.doc(id.toString()).delete(); }
+        async function saveDirectAcceptRequests(requests) { const batch = db.batch(); const snapshot = await directAcceptRequestsCol.get(); snapshot.forEach(doc => batch.delete(doc.ref)); requests.forEach(r => { const ref = directAcceptRequestsCol.doc(r.id.toString()); batch.set(ref, r); }); await batch.commit(); }
+        async function addImmediateResponse(response) { await immediateResponsesCol.doc(response.id.toString()).set(response); }
+        async function getImmediateResponses(requestId) { const snapshot = await immediateResponsesCol.where('requestId', '==', requestId).get(); return snapshot.docs.map(doc => ({ id: parseInt(doc.id), ...doc.data() })); }
+        async function updateImmediateResponse(id, data) { await immediateResponsesCol.doc(id.toString()).update(data); }
+        async function deleteImmediateResponses(requestId) { const snapshot = await immediateResponsesCol.where('requestId', '==', requestId).get(); const batch = db.batch(); snapshot.forEach(doc => batch.delete(doc.ref)); await batch.commit(); }
+
+        // ========== FUNÇÕES CLIENTE (com aceite de termos) ==========
+        async function registerUser(nome, cpf, telefone, senha, pergunta, resposta, aceiteTermos) {
+            if (!aceiteTermos) { showToast("Você deve aceitar os Termos de Uso para se cadastrar."); return false; }
+            const cpfLimpo = cpf.replace(/[^\d]+/g, '');
+            const existing = await getUserByCpf(cpfLimpo);
+            if (existing) { showToast("CPF já cadastrado."); return false; }
+            if (!validarCPF(cpfLimpo)) { showToast("CPF inválido."); return false; }
+            const newUser = { nome, cpf: cpfLimpo, telefone: telefone.replace(/\D/g,''), senha, pergunta, resposta: resposta.toLowerCase().trim(), bloqueado: false, aceiteTermos: true, dataAceite: new Date().toISOString() };
+            await usersCol.doc(cpfLimpo).set(newUser);
+            return true;
+        }
+
+        async function loginUser(cpf, senha) {
+            const cpfLimpo = cpf.replace(/[^\d]+/g, '');
+            const user = await getUserByCpf(cpfLimpo);
+            if (user && user.senha === senha) {
+                if (user.bloqueado) { showToast("Conta bloqueada. Contate o administrador."); return false; }
+                isLoggedIn = true;
+                currentUserCpf = cpfLimpo;
+                currentUserName = user.nome;
+                sessionStorage.setItem('freteja_loggedIn', 'true');
+                sessionStorage.setItem('freteja_userCpf', cpfLimpo);
+                sessionStorage.setItem('freteja_userName', user.nome);
+                updateUserInterface();
+                return true;
+            }
+            return false;
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            currentUserCpf = "";
+            currentUserName = "";
+            sessionStorage.removeItem('freteja_loggedIn');
+            sessionStorage.removeItem('freteja_userCpf');
+            sessionStorage.removeItem('freteja_userName');
+            updateUserInterface();
+            showToast("Você saiu da conta.");
+            pendingAccept = null;
+            if (document.getElementById('myRequestsPage').classList.contains('active')) renderRequestsPage();
+        }
+
+        function updateUserInterface() {
+            const userArea = document.getElementById('userArea');
+            const perfilLink = document.getElementById('perfilClienteLink');
+            if (!userArea) return;
+            if (isLoggedIn && currentUserCpf) {
+                const maskedCpf = currentUserCpf.replace(/(\d{3})\d{3}(\d{3})\d{2}/, '$1***$2**');
+                userArea.innerHTML = `<span><i class="fas fa-user-check"></i> Olá, ${currentUserName || maskedCpf}</span><button id="logoutBtnHeader" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</button>`;
+                document.getElementById('logoutBtnHeader').addEventListener('click', () => logout());
+                if (perfilLink) perfilLink.style.display = 'inline-block';
+            } else {
+                userArea.innerHTML = `<button id="loginBtnHeader" class="login-btn-header"><i class="fas fa-sign-in-alt"></i> Login</button>`;
+                document.getElementById('loginBtnHeader').addEventListener('click', () => showLoginModal());
+                if (perfilLink) perfilLink.style.display = 'none';
+            }
+        }
+
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; }
+        function showRegisterModal() { document.getElementById('registerModal').style.display = 'flex'; }
+
+        // ========== PERFIL DO CLIENTE ==========
+        async function carregarPerfilCliente() {
+            if (!isLoggedIn || !currentUserCpf) return;
+            const user = await getUserByCpf(currentUserCpf);
+            if (!user) return;
+            document.getElementById('perfilClienteNome').value = user.nome || '';
+            document.getElementById('perfilClienteCpf').value = user.cpf || '';
+            document.getElementById('perfilClienteTelefone').value = user.telefone || '';
+            document.getElementById('perfilClienteEndereco').value = user.endereco || '';
+            document.getElementById('perfilClienteNascimento').value = user.dataNascimento || '';
+            if (user.fotoBase64) {
+                const preview = document.getElementById('clienteAvatarPreview');
+                preview.innerHTML = `<img src="${user.fotoBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                document.getElementById('clienteAvatarPreview').innerHTML = '<i class="fas fa-user"></i>';
+            }
+        }
+
+        async function salvarPerfilCliente() {
+            const nome = document.getElementById('perfilClienteNome').value.trim();
+            const telefone = document.getElementById('perfilClienteTelefone').value.trim();
+            const endereco = document.getElementById('perfilClienteEndereco').value.trim();
+            const dataNascimento = document.getElementById('perfilClienteNascimento').value;
+            const novaSenha = document.getElementById('perfilClienteNovaSenha').value;
+            const confirmSenha = document.getElementById('perfilClienteConfirmSenha').value;
+            if (!nome) { showToast("Nome é obrigatório."); return; }
+            if (novaSenha) {
+                if (novaSenha !== confirmSenha) { showToast("Senhas não coincidem."); return; }
+                if (!validarSenhaCliente(novaSenha)) { showToast("Senha deve ter 8+ caracteres, 1 maiúscula, 1 minúscula e 1 número."); return; }
+            }
+            const updateData = { nome, telefone, endereco, dataNascimento };
+            if (novaSenha) updateData.senha = novaSenha;
+            const fotoInput = document.getElementById('clienteFotoInput');
+            if (fotoInput.files && fotoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    updateData.fotoBase64 = e.target.result;
+                    await usersCol.doc(currentUserCpf).update(updateData);
+                    currentUserName = nome;
+                    sessionStorage.setItem('freteja_userName', nome);
+                    updateUserInterface();
+                    showToast("Perfil atualizado com sucesso!");
+                    carregarPerfilCliente();
+                };
+                reader.readAsDataURL(fotoInput.files[0]);
+            } else {
+                await usersCol.doc(currentUserCpf).update(updateData);
+                currentUserName = nome;
+                sessionStorage.setItem('freteja_userName', nome);
+                updateUserInterface();
+                showToast("Perfil atualizado com sucesso!");
+                carregarPerfilCliente();
+            }
+        }
+
+        // Cálculos de preço
+        function calcularPrecoSugerido(type) {
+            const dist = parseFloat(document.getElementById(`${type}Distance`)?.value) || 0;
+            if (dist <= 0) return 0;
+            const efetiva = dist * CONFIG.MULTIPLICADOR_DISTANCIA;
+            const kmPrice = selectedTruckType === 'leve' ? CONFIG.PRICE_LEVE_KM : CONFIG.PRICE_PESADA_KM;
+            const adicional = selectedTruckType === 'leve' ? CONFIG.ADICIONAL_LEVE : CONFIG.ADICIONAL_PESADA;
+            const helpers = parseInt(document.getElementById(`${type}Helpers`)?.value) || 0;
+            
+            let totalAndares = 0;
+            const ret = document.getElementById(`${type}ResidenciaRetirada`)?.value;
+            if (ret === 'apartamento' && document.getElementById(`${type}AcessoRetirada`)?.value === 'escada') {
+                totalAndares += parseInt(document.getElementById(`${type}AndarRetirada`)?.value) || 1;
+            }
+            const ent = document.getElementById(`${type}ResidenciaEntrega`)?.value;
+            if (ent === 'apartamento' && document.getElementById(`${type}AcessoEntrega`)?.value === 'escada') {
+                totalAndares += parseInt(document.getElementById(`${type}AndarEntrega`)?.value) || 1;
+            }
+            const andares = Math.min(10, totalAndares);
+            
+            const ajudantesCusto = helpers * (CONFIG.PRECO_AJUDANTE_BASE + andares * CONFIG.PRECO_ESCOADA_POR_ANDAR);
+            const escadaAdd = andares * CONFIG.ADICIONAL_ANDAR_ESCADA;
+            const adicionalPorKm = dist * CONFIG.ADICIONAL_POR_KM;
+            let suggested = efetiva * kmPrice + adicional + ajudantesCusto + escadaAdd + adicionalPorKm;
+            suggested = Math.max(suggested, 150);
+            return suggested;
+        }
+        
+        function updatePriceSuggestion(type) {
+            const suggested = calcularPrecoSugerido(type);
+            if (suggested === 0) {
+                document.getElementById(`${type}PriceSuggestion`).innerHTML = `<i class="fas fa-chart-line"></i> Preço sugerido: <strong>Informe a distância</strong>`;
+                return;
+            }
+            const systemPrice = suggested + CONFIG.SISTEMA_TAXA_EXTRA;
+            document.getElementById(`${type}PriceSuggestion`).innerHTML = `<i class="fas fa-chart-line"></i> Preço sugerido: <strong>R$ ${suggested.toFixed(2)}</strong><br><small style="color: var(--secondary);">⭐ Oferta padrão do sistema: R$ ${systemPrice.toFixed(2)}</small>`;
+            const priceInput = document.getElementById(`${type}Price`);
+            if (priceInput && !priceInput.value) {
+                priceInput.value = Math.round(systemPrice);
+            }
+        }
+        
+        function toggleAcessibilidade(type, local) {
+            const residencia = document.getElementById(`${type}Residencia${local}`).value;
+            const acessoGroup = document.getElementById(`${type}Acesso${local}Group`);
+            const andarGroup = document.getElementById(`${type}Andar${local}Group`);
+            if (residencia === 'apartamento') {
+                acessoGroup.style.display = 'block';
+                const acesso = document.getElementById(`${type}Acesso${local}`).value;
+                andarGroup.style.display = acesso === 'escada' ? 'block' : 'none';
+            } else {
+                acessoGroup.style.display = 'none';
+                andarGroup.style.display = 'none';
+            }
+            updatePriceSuggestion(type);
+        }
+        
+        function attachEvents(type) {
+            document.getElementById(`${type}Distance`)?.addEventListener('input', () => updatePriceSuggestion(type));
+            document.getElementById(`${type}Helpers`)?.addEventListener('input', () => updatePriceSuggestion(type));
+            ['Retirada', 'Entrega'].forEach(local => {
+                const sel = document.getElementById(`${type}Residencia${local}`);
+                const acc = document.getElementById(`${type}Acesso${local}`);
+                const andar = document.getElementById(`${type}Andar${local}`);
+                if (sel) sel.addEventListener('change', () => toggleAcessibilidade(type, local));
+                if (acc) acc.addEventListener('change', () => toggleAcessibilidade(type, local));
+                if (andar) andar.addEventListener('input', () => updatePriceSuggestion(type));
+                toggleAcessibilidade(type, local);
+            });
+        }
+
+        // ========== Frete Imediato com Motoristas Online ==========
+        
+        function formatLocalDetalhes(req, tipo) {
+            if (!req) return 'Não informado';
+            const sufixo = (tipo === 'Retirada') ? 'Ret' : 'Ent';
+            const residencia = req[`residencia${sufixo}`];
+            if (!residencia) return 'Não informado';
+            let texto = residencia.charAt(0).toUpperCase() + residencia.slice(1);
+            if (residencia === 'apartamento') {
+                const acesso = req[`acesso${sufixo}`] || 'elevador';
+                texto += ` (${acesso})`;
+                if (acesso === 'escada') {
+                    const andar = req[`andar${sufixo}`];
+                    if (andar) texto += ` - ${andar}º andar`;
+                }
+            }
+            return texto;
+        }
+        
+        async function requestImmediate() {
+            if (!isLoggedIn) { 
+                showToast("Faça login primeiro."); 
+                showLoginModal(); 
+                return;
+            }
+            
+            const origin = document.getElementById('imediatoOrigin').value.trim();
+            const dest = document.getElementById('imediatoDestination').value.trim();
+            const cargo = document.getElementById('imediatoCargo').value.trim();
+            let distance = parseFloat(document.getElementById('imediatoDistance').value);
+            const helpers = parseInt(document.getElementById('imediatoHelpers').value) || 0;
+            const tipoServico = document.querySelector('input[name="tipoServicoImediato"]:checked')?.value;
+            const ret = document.getElementById('imediatoResidenciaRetirada').value;
+            const ent = document.getElementById('imediatoResidenciaEntrega').value;
+            const acessoRet = ret === 'apartamento' ? document.getElementById('imediatoAcessoRetirada').value : 'casa';
+            const acessoEnt = ent === 'apartamento' ? document.getElementById('imediatoAcessoEntrega').value : 'casa';
+            const andarRet = (ret === 'apartamento' && acessoRet === 'escada') ? parseInt(document.getElementById('imediatoAndarRetirada').value) : null;
+            const andarEnt = (ent === 'apartamento' && acessoEnt === 'escada') ? parseInt(document.getElementById('imediatoAndarEntrega').value) : null;
+            
+            if (!origin || !dest) { showToast("Preencha origem e destino"); return; }
+            if (!cargo) { showToast("Descreva a carga"); return; }
+            if (isNaN(distance) || distance <= 0) { showToast("Distância inválida"); return; }
+            
+            let desiredPrice = parseFloat(document.getElementById('imediatoPrice').value);
+            const precoSugerido = calcularPrecoSugerido('imediato');
+            const systemOfferPrice = precoSugerido + CONFIG.SISTEMA_TAXA_EXTRA;
+            
+            if (isNaN(desiredPrice) || desiredPrice <= 0) {
+                desiredPrice = systemOfferPrice;
+            }
+            
+            const requestData = {
+                id: Date.now(),
+                type: 'imediato',
+                origin: origin,
+                destination: dest,
+                cargo: cargo,
+                distance: distance,
+                price: desiredPrice,
+                truckType: selectedTruckType,
+                helpers: helpers,
+                tipoServico: tipoServico,
+                residenciaRet: ret,
+                acessoRet: acessoRet,
+                andarRet: andarRet,
+                residenciaEnt: ent,
+                acessoEnt: acessoEnt,
+                andarEnt: andarEnt,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                userCpf: currentUserCpf,
+                userName: currentUserName,
+                systemOfferPrice: systemOfferPrice,
+                suggestedPrice: precoSugerido,
+                desiredPrice: desiredPrice
+            };
+            
+            await addRequest(requestData);
+            currentRequest = requestData;
+            
+            const driversSnapshot = await driversCol.where('online', '==', true).get();
+            const onlineDrivers = driversSnapshot.docs.map(doc => ({ cpf: doc.id, ...doc.data() }));
+            
+            if (onlineDrivers.length === 0) {
+                showToast("Nenhum motorista online no momento. Sua solicitação ficará pendente.");
+                renderRequestsPage();
+                return;
+            }
+            
+            document.getElementById('searchingModal').style.display = 'flex';
+            
+            for (const driver of onlineDrivers) {
+                await addImmediateResponse({
+                    id: Date.now() + Math.random(),
+                    requestId: requestData.id,
+                    driverCpf: driver.cpf,
+                    driverName: driver.nome,
+                    driverTruck: driver.truck,
+                    driverWhatsapp: driver.telefone,
+                    clientCpf: currentUserCpf,
+                    clientName: currentUserName,
+                    origin: origin,
+                    destination: dest,
+                    cargo: cargo,
+                    distance: distance,
+                    helpers: helpers,
+                    tipoServico: tipoServico,
+                    residenciaRet: ret,
+                    acessoRet: acessoRet,
+                    andarRet: andarRet,
+                    residenciaEnt: ent,
+                    acessoEnt: acessoEnt,
+                    andarEnt: andarEnt,
+                    price: desiredPrice,
+                    status: 'pending',
+                    viewed: false,
+                    createdAt: new Date().toISOString()
+                });
+            }
+            
+            setTimeout(async () => {
+                document.getElementById('searchingModal').style.display = 'none';
+                const responses = await getImmediateResponses(requestData.id);
+                const acceptedResponse = responses.find(r => r.status === 'accepted');
+                const counterOffers = responses.filter(r => r.status === 'counter_offer');
+                
+                if (acceptedResponse) {
+                    await finalizeAcceptedFreight(requestData, acceptedResponse);
+                    showToast(`Frete aceito por ${acceptedResponse.driverName}!`);
+                } else if (counterOffers.length > 0) {
+                    showDriverResponsesModal(requestData, responses);
+                } else {
+                    showToast("Nenhum motorista respondeu à sua solicitação. Aguarde ou tente novamente mais tarde.");
+                }
+            }, 30000);
+        }
+        
+        async function finalizeAcceptedFreight(requestData, response) {
+            const accepted = {
+                id: requestData.id,
+                type: 'imediato',
+                origin: requestData.origin,
+                destination: requestData.destination,
+                cargo: requestData.cargo,
+                distance: requestData.distance,
+                price: response.price,
+                acceptedPrice: response.price,
+                driver: response.driverName,
+                driverCpf: response.driverCpf,
+                driverWhatsapp: response.driverWhatsapp || (await getDriverByCpf(response.driverCpf))?.telefone || '',
+                driverTruck: response.driverTruck || (await getDriverByCpf(response.driverCpf))?.truck || '',
+                driverRating: (await getDriverByCpf(response.driverCpf))?.rating || '5.0',
+                status: 'accepted',
+                date: new Date().toLocaleDateString(),
+                userCpf: currentUserCpf,
+                userName: currentUserName,
+                createdAt: requestData.createdAt
+            };
+            
+            const allRequests = await getRequests();
+            const existingIndex = allRequests.findIndex(r => r.id === requestData.id);
+            if (existingIndex !== -1) {
+                allRequests[existingIndex] = accepted;
+                await saveRequests(allRequests);
+            } else {
+                await addRequest(accepted);
+            }
+            
+            await deleteImmediateResponses(requestData.id);
+            showDriverContactModal(response.driverName, accepted.driverWhatsapp, accepted.driverTruck, accepted.driverRating, response.price);
+            if (document.getElementById('myRequestsPage').classList.contains('active')) renderRequestsPage();
+        }
+        
+        function showDriverResponsesModal(requestData, responses) {
+            const container = document.getElementById('driverResponsesList');
+            container.innerHTML = `
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: #f0f7ff; border-radius: 0.5rem;">
+                    <strong>Solicitação #${requestData.id}</strong><br>
+                    ${requestData.origin} → ${requestData.destination}<br>
+                    <span class="badge-active">💰 Valor ofertado: R$ ${requestData.price.toFixed(2)}</span>
+                </div>
+            `;
+            
+            const acceptedResp = responses.find(r => r.status === 'accepted');
+            const counterOffers = responses.filter(r => r.status === 'counter_offer');
+            
+            if (acceptedResp) {
+                container.innerHTML += `
+                    <div class="offer-card" style="border-left-color: var(--success); background: #e8f5e9;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div>
+                                <strong><i class="fas fa-check-circle" style="color: var(--success);"></i> ${escapeHtml(acceptedResp.driverName)}</strong>
+                                <br><small>${escapeHtml(acceptedResp.driverTruck || 'Caminhão')}</small>
+                            </div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: var(--success);">R$ ${acceptedResp.price.toFixed(2)}</div>
+                        </div>
+                        <div style="margin-top: 0.5rem;">
+                            <button class="btn-success btn-sm accept-driver-response" data-driver-cpf="${acceptedResp.driverCpf}" data-price="${acceptedResp.price}" data-driver-name="${escapeHtml(acceptedResp.driverName)}" data-whatsapp="${acceptedResp.driverWhatsapp || ''}" data-truck="${acceptedResp.driverTruck || ''}">
+                                <i class="fas fa-check"></i> Aceitar esta oferta
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (counterOffers.length > 0) {
+                container.innerHTML += `<h4 style="margin-top: 1rem;">📩 Contra-ofertas recebidas:</h4>`;
+                for (const offer of counterOffers) {
+                    container.innerHTML += `
+                        <div class="offer-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <div>
+                                    <strong>${escapeHtml(offer.driverName)}</strong>
+                                    <br><small>${escapeHtml(offer.driverTruck || 'Caminhão')}</small>
+                                </div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: var(--secondary);">R$ ${offer.counterPrice.toFixed(2)}</div>
+                            </div>
+                            ${offer.counterMessage ? `<div><i class="fas fa-comment"></i> "${escapeHtml(offer.counterMessage)}"</div>` : ''}
+                            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn-primary btn-sm accept-counter-response" data-driver-cpf="${offer.driverCpf}" data-price="${offer.counterPrice}" data-driver-name="${escapeHtml(offer.driverName)}" data-whatsapp="${offer.driverWhatsapp || ''}" data-truck="${offer.driverTruck || ''}">
+                                    <i class="fas fa-check"></i> Aceitar esta oferta
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('driverResponsesModal').style.display = 'flex';
+            
+            document.querySelectorAll('.accept-driver-response, .accept-counter-response').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const driverCpf = btn.getAttribute('data-driver-cpf');
+                    const price = parseFloat(btn.getAttribute('data-price'));
+                    const driverName = btn.getAttribute('data-driver-name');
+                    const whatsapp = btn.getAttribute('data-whatsapp');
+                    const truck = btn.getAttribute('data-truck');
+                    
+                    const response = { driverName, driverCpf, price, driverWhatsapp: whatsapp, driverTruck: truck };
+                    await finalizeAcceptedFreight(currentRequest, response);
+                    closeModal('driverResponsesModal');
+                });
+            });
+        }
+        
+        // ========== ORÇAMENTO ==========
+        async function requestScheduledBudget() {
+            if (!isLoggedIn) { 
+                showToast("Faça login primeiro."); 
+                showLoginModal(); 
+                return; 
+            }
+            
+            const origin = document.getElementById('orcamentoOrigin').value.trim();
+            const dest = document.getElementById('orcamentoDestination').value.trim();
+            const cargo = document.getElementById('orcamentoCargo').value.trim();
+            let price = parseFloat(document.getElementById('orcamentoPrice').value);
+            let distance = parseFloat(document.getElementById('orcamentoDistance').value);
+            const dateTime = document.getElementById('scheduledDateTime').value;
+            const helpers = parseInt(document.getElementById('orcamentoHelpers').value) || 0;
+            const tipoServico = document.querySelector('input[name="tipoServicoOrcamento"]:checked')?.value;
+            const ret = document.getElementById('orcamentoResidenciaRetirada').value;
+            const ent = document.getElementById('orcamentoResidenciaEntrega').value;
+            const acessoRet = ret === 'apartamento' ? document.getElementById('orcamentoAcessoRetirada').value : 'casa';
+            const acessoEnt = ent === 'apartamento' ? document.getElementById('orcamentoAcessoEntrega').value : 'casa';
+            const andarRet = (ret === 'apartamento' && acessoRet === 'escada') ? parseInt(document.getElementById('orcamentoAndarRetirada').value) : null;
+            const andarEnt = (ent === 'apartamento' && acessoEnt === 'escada') ? parseInt(document.getElementById('orcamentoAndarEntrega').value) : null;
+            
+            if (!origin || !dest) { showToast("Preencha origem e destino"); return; }
+            if (!cargo) { showToast("Descreva a carga"); return; }
+            if (isNaN(price) || price <= 0) { showToast("Valor inválido"); return; }
+            if (isNaN(distance) || distance <= 0) { showToast("Distância inválida"); return; }
+            if (!dateTime) { showToast("Selecione data e horário"); return; }
+            
+            const budget = { 
+                id: Date.now(), 
+                type: 'orcamento', 
+                origin, 
+                destination: dest, 
+                cargo, 
+                price, 
+                distance, 
+                truckType: selectedTruckType, 
+                helpers, 
+                scheduledDate: dateTime, 
+                residenciaRet: ret, 
+                acessoRet, 
+                andarRet, 
+                residenciaEnt: ent, 
+                acessoEnt, 
+                andarEnt, 
+                tipoServico, 
+                status: 'budget_pending', 
+                createdAt: new Date().toISOString(), 
+                userCpf: currentUserCpf,
+                userName: currentUserName
+            };
+            
+            await addRequest(budget);
+            document.getElementById('budgetInfoModal').style.display = 'flex';
+        }
+        
+        // ========== MOTORISTA (com aceite de termos) ==========
+        async function registerDriver(nome, cpf, telefone, truckType, senha, aceiteTermos) {
+            if (!aceiteTermos) { showToast("Você deve aceitar os Termos de Uso para se cadastrar como motorista."); return false; }
+            const cpfLimpo = cpf.replace(/[^\d]+/g, '');
+            const existing = await getDriverByCpf(cpfLimpo);
+            if (existing) { 
+                showToast("CPF já cadastrado como motorista."); 
+                return false; 
+            }
+            if (!validarCPF(cpfLimpo)) { 
+                showToast("CPF inválido."); 
+                return false; 
+            }
+            if (senha.length < 6) { 
+                showToast("Senha deve ter pelo menos 6 caracteres."); 
+                return false; 
+            }
+            const newDriver = { 
+                nome, 
+                cpf: cpfLimpo, 
+                telefone: telefone.replace(/\D/g,''), 
+                truck: truckType, 
+                senha, 
+                rating: "5.0", 
+                createdAt: new Date().toISOString(), 
+                bloqueado: false, 
+                online: false,
+                aprovacao_direta: false, 
+                prioridade: 'media',
+                aceiteTermos: true,
+                dataAceite: new Date().toISOString()
+            };
+            await driversCol.doc(cpfLimpo).set(newDriver);
+            showToast("Motorista cadastrado com sucesso! Faça login.");
+            return true;
+        }
+
+        async function loginDriver(cpf, senha) {
+            const cpfLimpo = cpf.replace(/[^\d]+/g, '');
+            const driver = await getDriverByCpf(cpfLimpo);
+            if (driver && driver.senha === senha) {
+                if (driver.bloqueado) { 
+                    showToast("Conta bloqueada. Contate o administrador."); 
+                    return false; 
+                }
+                isDriverLoggedIn = true;
+                currentDriverCpf = cpfLimpo;
+                currentDriverData = driver;
+                sessionStorage.setItem('freteja_driver_logged', 'true');
+                sessionStorage.setItem('freteja_driver_cpf', cpfLimpo);
+                sessionStorage.setItem('freteja_driver_name', driver.nome);
+                startListeningForRequests();
+                return true;
+            }
+            return false;
+        }
+        
+        function logoutDriver() {
+            if (currentDriverData && currentDriverData.online) {
+                updateDriver(currentDriverCpf, { online: false });
+            }
+            if (currentResponseListener) {
+                currentResponseListener();
+                currentResponseListener = null;
+            }
+            isDriverLoggedIn = false;
+            currentDriverCpf = "";
+            currentDriverData = null;
+            sessionStorage.removeItem('freteja_driver_logged');
+            sessionStorage.removeItem('freteja_driver_cpf');
+            sessionStorage.removeItem('freteja_driver_name');
+            renderDriverPanel();
+            showToast("Você saiu da área do motorista.");
+        }
+        
+        async function toggleDriverOnline() {
+            if (!currentDriverData) return;
+            const newStatus = !currentDriverData.online;
+            await updateDriver(currentDriverCpf, { online: newStatus });
+            currentDriverData.online = newStatus;
+            
+            const toggleBtn = document.getElementById('toggleOnlineBtn');
+            const statusText = document.getElementById('onlineStatusText');
+            
+            if (newStatus) {
+                toggleBtn.textContent = 'Ficar Offline';
+                toggleBtn.className = 'btn-online';
+                statusText.innerHTML = '<span class="status-indicator online"></span> Online';
+                showToast("Você está ONLINE! Receberá solicitações de frete imediato.");
+                startListeningForRequests();
+            } else {
+                toggleBtn.textContent = 'Ficar Online';
+                toggleBtn.className = 'btn-offline';
+                statusText.innerHTML = '<span class="status-indicator offline"></span> Offline';
+                showToast("Você está OFFLINE. Não receberá novas solicitações.");
+                if (currentResponseListener) {
+                    currentResponseListener();
+                    currentResponseListener = null;
+                }
+            }
+        }
+        
+        function startListeningForRequests() {
+            if (currentResponseListener) {
+                currentResponseListener();
+            }
+            
+            currentResponseListener = immediateResponsesCol
+                .where('driverCpf', '==', currentDriverCpf)
+                .where('status', '==', 'pending')
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const data = change.doc.data();
+                            if (data.requestId && !data.viewed) {
+                                triggerNotification(
+                                    'Nova Solicitação de Frete!',
+                                    `Cliente ${data.clientName || data.clientCpf} precisa de transporte de ${data.origin} para ${data.destination}`,
+                                    'fas fa-truck'
+                                );
+                                showDriverReceiveModal(data, change.doc.id);
+                                immediateResponsesCol.doc(change.doc.id).update({ viewed: true });
+                            }
+                        }
+                    });
+                });
+        }
+        
+        // ========== MODAL DE SOLICITAÇÃO (CONTATO REMOVIDO) ==========
+        function showDriverReceiveModal(response, responseId) {
+            pendingDriverResponseId = responseId;
+            currentImmediateRequest = response;
+            
+            const retiradaDet = formatLocalDetalhes(response, 'Retirada');
+            const entregaDet = formatLocalDetalhes(response, 'Entrega');
+            const tipoServico = (response.tipoServico === 'mudanca') ? 'Mudança' : 'Frete';
+            
+            const infoDiv = document.getElementById('solicitationInfo');
+            infoDiv.innerHTML = `
+                <div style="margin-bottom: 0.5rem; padding: 0.8rem; background: #f0f7ff; border-radius: 0.8rem;">
+                    <div class="info-grid">
+                        <div class="info-item"><span class="info-label">Cliente:</span> ${escapeHtml(response.clientName)}</div>
+                        <!-- Contato removido conforme solicitado -->
+                        <div class="info-item"><span class="info-label">Origem:</span> ${escapeHtml(response.origin)}</div>
+                        <div class="info-item"><span class="info-label">Destino:</span> ${escapeHtml(response.destination)}</div>
+                        <div class="info-item"><span class="info-label">Distância:</span> ${response.distance} km</div>
+                        <div class="info-item"><span class="info-label">Tipo de serviço:</span> ${tipoServico}</div>
+                        <div class="info-item"><span class="info-label">Ajudantes:</span> ${response.helpers || 0}</div>
+                        <div class="info-item"><span class="info-label">Retirada:</span> ${retiradaDet}</div>
+                        <div class="info-item"><span class="info-label">Entrega:</span> ${entregaDet}</div>
+                        <div class="info-item"><span class="info-label">Carga:</span> ${escapeHtml(response.cargo?.substring(0, 80) || 'N/A')}</div>
+                        <div class="info-item"><span class="info-label">Valor ofertado:</span> <strong style="color: var(--secondary);">R$ ${response.price.toFixed(2)}</strong></div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('acceptPrice').innerText = response.price.toFixed(2);
+            document.getElementById('counterOfferDiv').style.display = 'none';
+            document.getElementById('makeCounterOfferBtn').style.display = 'inline-block';
+            document.getElementById('driverCounterValue').value = '';
+            document.getElementById('driverCounterMessage').value = '';
+            document.getElementById('driverReceiveModal').style.display = 'flex';
+        }
+        
+        async function acceptFreightAsDriver() {
+            if (!pendingDriverResponseId || !currentImmediateRequest) return;
+            
+            await updateImmediateResponse(pendingDriverResponseId, {
+                status: 'accepted',
+                acceptedAt: new Date().toISOString()
+            });
+            
+            closeModal('driverReceiveModal');
+            showToast(`Frete aceito! Aguarde o cliente confirmar.`);
+            renderDriverPanel();
+        }
+        
+        async function sendDriverCounterOffer() {
+            if (!pendingDriverResponseId || !currentImmediateRequest) return;
+            
+            const counterValue = parseFloat(document.getElementById('driverCounterValue').value);
+            if (isNaN(counterValue) || counterValue <= 0) {
+                showToast("Digite um valor válido para a contra-oferta.");
+                return;
+            }
+            const message = document.getElementById('driverCounterMessage').value.trim();
+            
+            await updateImmediateResponse(pendingDriverResponseId, {
+                status: 'counter_offer',
+                counterPrice: counterValue,
+                counterMessage: message,
+                respondedAt: new Date().toISOString()
+            });
+            
+            closeModal('driverReceiveModal');
+            showToast(`Contra-oferta de R$ ${counterValue.toFixed(2)} enviada ao cliente!`);
+            renderDriverPanel();
+        }
+        
+        async function declineFreight() {
+            if (!pendingDriverResponseId) return;
+            
+            await updateImmediateResponse(pendingDriverResponseId, {
+                status: 'declined',
+                respondedAt: new Date().toISOString()
+            });
+            
+            closeModal('driverReceiveModal');
+            showToast("Você recusou este frete.");
+            renderDriverPanel();
+        }
+        
+        // ========== PERFIL DO MOTORISTA (nova aba) ==========
+        async function carregarPerfilMotorista() {
+            if (!isDriverLoggedIn || !currentDriverCpf) return;
+            const driver = await getDriverByCpf(currentDriverCpf);
+            if (!driver) return;
+            document.getElementById('perfilMotoristaNome').value = driver.nome || '';
+            document.getElementById('perfilMotoristaCpf').value = driver.cpf || '';
+            document.getElementById('perfilMotoristaTelefone').value = driver.telefone || '';
+            document.getElementById('perfilMotoristaTruck').value = driver.truck || '';
+            document.getElementById('perfilMotoristaPlaca').value = driver.placa || '';
+            document.getElementById('perfilMotoristaCnh').value = driver.cnh || '';
+            if (driver.fotoBase64) {
+                document.getElementById('motoristaAvatarPreview').innerHTML = `<img src="${driver.fotoBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            } else {
+                document.getElementById('motoristaAvatarPreview').innerHTML = '<i class="fas fa-truck"></i>';
+            }
+        }
+
+        async function salvarPerfilMotorista() {
+            const nome = document.getElementById('perfilMotoristaNome').value.trim();
+            const telefone = document.getElementById('perfilMotoristaTelefone').value.trim();
+            const truck = document.getElementById('perfilMotoristaTruck').value;
+            const placa = document.getElementById('perfilMotoristaPlaca').value.trim();
+            const cnh = document.getElementById('perfilMotoristaCnh').value.trim();
+            const novaSenha = document.getElementById('perfilMotoristaNovaSenha').value;
+            const confirmSenha = document.getElementById('perfilMotoristaConfirmSenha').value;
+            if (!nome) { showToast("Nome é obrigatório."); return; }
+            if (novaSenha) {
+                if (novaSenha !== confirmSenha) { showToast("Senhas não coincidem."); return; }
+                if (!validarSenhaMotorista(novaSenha)) { showToast("Senha deve ter no mínimo 6 caracteres."); return; }
+            }
+            const updateData = { nome, telefone, truck, placa, cnh };
+            if (novaSenha) updateData.senha = novaSenha;
+            const fotoInput = document.getElementById('motoristaFotoInput');
+            if (fotoInput.files && fotoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    updateData.fotoBase64 = e.target.result;
+                    await driversCol.doc(currentDriverCpf).update(updateData);
+                    currentDriverData = await getDriverByCpf(currentDriverCpf);
+                    showToast("Perfil atualizado com sucesso!");
+                    carregarPerfilMotorista();
+                };
+                reader.readAsDataURL(fotoInput.files[0]);
+            } else {
+                await driversCol.doc(currentDriverCpf).update(updateData);
+                currentDriverData = await getDriverByCpf(currentDriverCpf);
+                showToast("Perfil atualizado com sucesso!");
+                carregarPerfilMotorista();
+            }
+        }
+
+        // ========== FUNÇÕES PARA ORÇAMENTOS NO PAINEL DO MOTORISTA ==========
+        
+        async function renderDriverOrcamentos() {
+            const container = document.getElementById('driverTabOrcamentos');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando orçamentos...</div>';
+            
+            const allRequests = await getRequests();
+            const orcamentosPendentes = allRequests.filter(r => r.type === 'orcamento' && r.status === 'budget_pending');
+            
+            const driverOffers = await getDriverOffers();
+            const myOffersRequestIds = driverOffers.filter(o => o.driverCpf === currentDriverCpf).map(o => o.requestId);
+            
+            const orcamentosDisponiveis = orcamentosPendentes.filter(o => !myOffersRequestIds.includes(o.id));
+            
+            if (orcamentosDisponiveis.length === 0) {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;">Nenhum orçamento disponível no momento.</div>';
+                return;
+            }
+            
+            let html = `<div class="driver-offers-list">`;
+            
+            for (const orc of orcamentosDisponiveis) {
+                const retiradaDet = formatLocalDetalhes(orc, 'Retirada');
+                const entregaDet = formatLocalDetalhes(orc, 'Entrega');
+                const tipoServico = (orc.tipoServico === 'mudanca') ? 'Mudança' : 'Frete';
+                const descricaoCarga = orc.cargo || 'Não informada';
+                const ajudantes = (orc.helpers !== undefined) ? orc.helpers : 0;
+                const distancia = orc.distance ? `${orc.distance} km` : 'Não informada';
+                const valorCliente = (orc.price !== undefined) ? `R$ ${orc.price.toFixed(2)}` : 'R$ --';
+                
+                let dataHoraHtml = '';
+                if (orc.scheduledDate) {
+                    try {
+                        const dataObj = new Date(orc.scheduledDate);
+                        if (!isNaN(dataObj.getTime())) {
+                            dataHoraHtml = `<div><i class="fas fa-calendar-alt"></i> <strong>Data/Hora agendada:</strong> ${dataObj.toLocaleString()}</div>`;
+                        } else {
+                            dataHoraHtml = `<div><i class="fas fa-calendar-alt"></i> <strong>Data/Hora agendada:</strong> ${orc.scheduledDate}</div>`;
+                        }
+                    } catch(e) {
+                        dataHoraHtml = `<div><i class="fas fa-calendar-alt"></i> <strong>Data/Hora agendada:</strong> ${orc.scheduledDate}</div>`;
+                    }
+                }
+                
+                html += `
+                    <div class="driver-offer-item" style="border-left-color: var(--accent);" data-id="${orc.id}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div><strong><i class="fas fa-calendar-alt" style="color: var(--accent);"></i> Orçamento Agendado #${orc.id}</strong></div>
+                            <div><small>Criado em: ${new Date(orc.createdAt).toLocaleString()}</small></div>
+                        </div>
+                        <div><i class="fas fa-user"></i> <strong>Cliente:</strong> ${escapeHtml(orc.userName || orc.userCpf)}</div>
+                        <div><i class="fas fa-map-marker-alt"></i> <strong>Origem:</strong> ${escapeHtml(orc.origin)}</div>
+                        <div><i class="fas fa-flag-checkered"></i> <strong>Destino:</strong> ${escapeHtml(orc.destination)}</div>
+                        <div><i class="fas fa-road"></i> <strong>Distância:</strong> ${distancia}</div>
+                        <div><i class="fas fa-home"></i> <strong>Retirada:</strong> ${retiradaDet}</div>
+                        <div><i class="fas fa-home"></i> <strong>Entrega:</strong> ${entregaDet}</div>
+                        <div><i class="fas fa-concierge-bell"></i> <strong>Tipo de serviço:</strong> ${tipoServico}</div>
+                        <div><i class="fas fa-box"></i> <strong>Carga:</strong> ${descricaoCarga.substring(0, 100)}${descricaoCarga.length > 100 ? '...' : ''}</div>
+                        <div><i class="fas fa-users"></i> <strong>Ajudantes:</strong> ${ajudantes}</div>
+                        ${dataHoraHtml}
+                        <div><i class="fas fa-dollar-sign"></i> <strong>Cliente oferece:</strong> ${valorCliente}</div>
+                        <div class="budget-actions" style="margin-top: 0.8rem;">
+                            <button class="btn-primary btn-sm make-orcamento-offer" data-id="${orc.id}">
+                                <i class="fas fa-hand-holding-usd"></i> Fazer Proposta
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            container.innerHTML = html;
+            
+            document.querySelectorAll('#driverTabOrcamentos .make-orcamento-offer').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const reqId = parseInt(btn.getAttribute('data-id'));
+                    const orcamento = orcamentosDisponiveis.find(o => o.id === reqId);
+                    if (orcamento) showOrcamentoOfferModal(orcamento);
+                });
+            });
+        }
+        
+        function showOrcamentoOfferModal(orcamento) {
+            currentOrcamentoRequest = orcamento;
+            
+            const infoDiv = document.getElementById('orcamentoOfferInfo');
+            const retiradaDet = formatLocalDetalhes(orcamento, 'Retirada');
+            const entregaDet = formatLocalDetalhes(orcamento, 'Entrega');
+            
+            infoDiv.innerHTML = `
+                <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: #f0f7ff; border-radius: 0.5rem;">
+                    <div class="info-grid">
+                        <div class="info-item"><span class="info-label">Cliente:</span> ${escapeHtml(orcamento.userName || orcamento.userCpf)}</div>
+                        <div class="info-item"><span class="info-label">Origem:</span> ${escapeHtml(orcamento.origin)}</div>
+                        <div class="info-item"><span class="info-label">Destino:</span> ${escapeHtml(orcamento.destination)}</div>
+                        <div class="info-item"><span class="info-label">Distância:</span> ${orcamento.distance} km</div>
+                        <div class="info-item"><span class="info-label">Retirada:</span> ${retiradaDet}</div>
+                        <div class="info-item"><span class="info-label">Entrega:</span> ${entregaDet}</div>
+                        <div class="info-item"><span class="info-label">Carga:</span> ${escapeHtml(orcamento.cargo?.substring(0, 100) || 'N/A')}</div>
+                        <div class="info-item"><span class="info-label">Ajudantes:</span> ${orcamento.helpers || 0}</div>
+                        ${orcamento.scheduledDate ? `<div class="info-item"><span class="info-label">Data agendada:</span> ${new Date(orcamento.scheduledDate).toLocaleString()}</div>` : ''}
+                        <div class="info-item"><span class="info-label">Cliente oferece:</span> <strong style="color: var(--secondary);">R$ ${orcamento.price.toFixed(2)}</strong></div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('orcamentoOfferValue').value = '';
+            document.getElementById('orcamentoOfferMessage').value = '';
+            document.getElementById('orcamentoOfferModal').style.display = 'flex';
+        }
+        
+        async function sendOrcamentoOffer() {
+            if (!currentOrcamentoRequest) return;
+            
+            const offerValue = parseFloat(document.getElementById('orcamentoOfferValue').value);
+            if (isNaN(offerValue) || offerValue <= 0) {
+                showToast("Digite um valor válido para a proposta.");
+                return;
+            }
+            const message = document.getElementById('orcamentoOfferMessage').value.trim();
+            
+            const newOffer = {
+                id: Date.now(),
+                requestId: currentOrcamentoRequest.id,
+                driverCpf: currentDriverCpf,
+                driverName: currentDriverData.nome,
+                driverTruck: currentDriverData.truck,
+                driverWhatsapp: currentDriverData.telefone,
+                driverRating: currentDriverData.rating,
+                price: offerValue,
+                message: message,
+                origin: currentOrcamentoRequest.origin,
+                destination: currentOrcamentoRequest.destination,
+                createdAt: new Date().toISOString(),
+                status: currentDriverData.aprovacao_direta ? 'approved' : 'pending_approval'
+            };
+            
+            await addDriverOffer(newOffer);
+            
+            if (currentDriverData.aprovacao_direta) {
+                showToast("Proposta enviada e aprovada automaticamente! O cliente já pode visualizar.");
+            } else {
+                showToast("Proposta enviada para aprovação do administrador. Aguarde.");
+            }
+            
+            closeModal('orcamentoOfferModal');
+            renderDriverPanel();
+        }
+        
+        // ========== PÁGINA DE PEDIDOS DO CLIENTE ==========
+        async function renderRequestsPage() {
+            const container = document.getElementById('historyContainer');
+            if (!container) return;
+            
+            if (!isLoggedIn) {
+                container.innerHTML = `<div class="login-required-card"><i class="fas fa-lock" style="font-size:2rem;color:var(--secondary);"></i><h3>Pedidos protegidos</h3><p>Você precisa estar logado para visualizar seus pedidos.</p><button id="gotoLoginFromHistory" class="btn-primary">Fazer login</button></div>`;
+                document.getElementById('gotoLoginFromHistory')?.addEventListener('click', () => showLoginModal());
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando pedidos...</div>';
+            
+            const all = await getRequests();
+            const myRequests = all.filter(r => r.userCpf === currentUserCpf);
+            const accepted = myRequests.filter(r => r.status === 'accepted');
+            const pending = myRequests.filter(r => r.status === 'pending' || r.status === 'budget_pending');
+            const allDriverOffers = await getDriverOffers();
+            const approvedOffers = allDriverOffers.filter(o => o.status === 'approved');
+            
+            let html = `<div class="section-title"><i class="fas fa-check-circle" style="color:var(--success);"></i> Fretes Confirmados</div>`;
+            
+            if (accepted.length === 0) {
+                html += '<div style="text-align:center;padding:1rem;">Nenhum frete aceito ainda.</div>';
+            } else {
+                html += `<div class="history-list">`;
+                for (const r of accepted) {
+                    const tipoBadge = r.type === 'imediato' ? 
+                        '<span class="freight-type-badge badge-imediato"><i class="fas fa-bolt"></i> Imediato</span>' : 
+                        '<span class="badge-orcamento"><i class="fas fa-calendar-alt"></i> Agendado</span>';
+                    
+                    html += `<div class="history-item">
+                        <div>${tipoBadge} <strong>${r.type === 'imediato' ? 'Frete Imediato' : 'Orçamento'}</strong> <span style="float:right">${r.date || new Date(r.createdAt).toLocaleDateString()}</span></div>
+                        <div>${r.origin} → ${r.destination} (${r.distance} km)</div>
+                        <div>Valor: R$ ${(r.acceptedPrice || r.price).toFixed(2)}</div>
+                        <div>Motorista: ${r.driver || 'Sistema'}</div>
+                        <span style="color:var(--success);">✔️ Confirmado</span>`;
+                    
+                    if (r.driverWhatsapp) {
+                        html += `<div style="margin-top:0.5rem;"><button class="btn-whatsapp btn-sm contact-driver-whatsapp" data-whatsapp="${r.driverWhatsapp}" data-name="${r.driver}" style="width:auto; padding:0.3rem 0.8rem; font-size:0.8rem;"><i class="fab fa-whatsapp"></i> Falar com Motorista</button></div>`;
+                    }
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+            
+            html += `<div class="section-title"><i class="fas fa-clock" style="color:var(--accent);"></i> Pedidos em Aberto</div>`;
+            
+            if (pending.length === 0) {
+                html += '<div style="text-align:center;padding:1rem;">Nenhum pedido em aberto.</div>';
+            } else {
+                html += `<div class="budget-list">`;
+                for (const p of pending) {
+                    const tipoBadge = p.type === 'imediato' ? 
+                        '<span class="freight-type-badge badge-imediato"><i class="fas fa-bolt"></i> Imediato</span>' : 
+                        '<span class="badge-orcamento"><i class="fas fa-calendar-alt"></i> Agendado</span>';
+                    
+                    const offersForThis = approvedOffers.filter(o => o.requestId === p.id);
+                    let offersHtml = '';
+                    
+                    if (offersForThis.length > 0) {
+                        offersHtml = `<div style="margin-top:0.8rem; border-top:1px solid #e2e8f0; padding-top:0.5rem;"><strong>Propostas de motoristas (aprovadas):</strong>`;
+                        for (const of of offersForThis) {
+                            offersHtml += `
+                                <div style="background:#fff; border-radius:0.5rem; padding:0.5rem; margin-top:0.5rem;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                                        <span><i class="fas fa-truck"></i> ${of.driverName} (${of.driverTruck})</span>
+                                        <span style="font-weight:bold;color:var(--secondary);">R$ ${of.price.toFixed(2)}</span>
+                                    </div>
+                                    ${of.message ? `<div><i class="fas fa-comment"></i> <strong>Mensagem:</strong> ${escapeHtml(of.message)}</div>` : ''}
+                                    <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                        <button class="btn-primary btn-sm accept-orcamento-offer" data-request="${p.id}" data-driver="${of.driverCpf}" data-price="${of.price}" data-name="${of.driverName}" data-whatsapp="${of.driverWhatsapp}" data-truck="${of.driverTruck}" data-rating="${of.driverRating}">Aceitar</button>
+                                        <button class="btn-outline btn-sm client-counter-offer-btn" data-request="${p.id}" data-driver-cpf="${of.driverCpf}" data-driver-name="${of.driverName}" data-current-price="${of.price}">Responder com Contra-Oferta</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        offersHtml += `</div>`;
+                    }
+                    
+                    html += `<div class="budget-item">
+                        <div>${tipoBadge} <strong>${p.type === 'imediato' ? 'Frete Imediato' : 'Orçamento'}</strong> <span style="float:right">${new Date(p.createdAt).toLocaleDateString()}</span></div>
+                        <div>${p.origin} → ${p.destination} (${p.distance} km)</div>
+                        <div>Valor desejado: R$ ${p.price.toFixed(2)}</div>
+                        ${p.type === 'orcamento' && p.scheduledDate ? `<div><i class="fas fa-calendar-alt"></i> Agendado para: ${new Date(p.scheduledDate).toLocaleString()}</div>` : ''}
+                        ${offersHtml}
+                    </div>`;
+                }
+                html += `</div>`;
+            }
+            
+            container.innerHTML = html;
+            
+            document.querySelectorAll('.accept-orcamento-offer').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const requestId = parseInt(btn.getAttribute('data-request'));
+                    const driverCpf = btn.getAttribute('data-driver');
+                    const price = parseFloat(btn.getAttribute('data-price'));
+                    const driverName = btn.getAttribute('data-name');
+                    const whatsapp = btn.getAttribute('data-whatsapp');
+                    const truck = btn.getAttribute('data-truck');
+                    const rating = btn.getAttribute('data-rating');
+                    
+                    const all = await getRequests();
+                    const reqIndex = all.findIndex(r => r.id === requestId && r.userCpf === currentUserCpf);
+                    if (reqIndex !== -1) {
+                        all[reqIndex].status = 'accepted';
+                        all[reqIndex].driver = driverName;
+                        all[reqIndex].driverWhatsapp = whatsapp;
+                        all[reqIndex].driverTruck = truck;
+                        all[reqIndex].driverRating = rating;
+                        all[reqIndex].acceptedPrice = price;
+                        all[reqIndex].date = new Date().toLocaleDateString();
+                        await saveRequests(all);
+                        
+                        const offers = await getDriverOffers();
+                        await saveDriverOffers(offers.filter(o => o.requestId !== requestId));
+                        
+                        showDriverContactModal(driverName, whatsapp, truck, rating, price);
+                        renderRequestsPage();
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.client-counter-offer-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const requestId = parseInt(btn.getAttribute('data-request'));
+                    const driverCpf = btn.getAttribute('data-driver-cpf');
+                    const driverName = btn.getAttribute('data-driver-name');
+                    const currentPrice = parseFloat(btn.getAttribute('data-current-price'));
+                    
+                    const newPrice = prompt(`Digite sua contra-proposta para ${driverName} (atual: R$ ${currentPrice.toFixed(2)}):`, currentPrice);
+                    if (newPrice && !isNaN(parseFloat(newPrice))) {
+                        showToast(`Contra-proposta de R$ ${parseFloat(newPrice).toFixed(2)} enviada para ${driverName}!`);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.contact-driver-whatsapp').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const whatsapp = btn.getAttribute('data-whatsapp');
+                    const name = btn.getAttribute('data-name');
+                    window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Olá ${name}, tudo bem? Gostaria de falar sobre o frete.`)}`, '_blank');
+                });
+            });
+        }
+        
+        // ========== PAINEL DO MOTORISTA ==========
+        async function renderDriverPanel() {
+            const notLoggedDiv = document.getElementById('driverNotLogged');
+            const loggedPanel = document.getElementById('driverLoggedPanel');
+            
+            if (!isDriverLoggedIn || !currentDriverData) {
+                notLoggedDiv.style.display = 'block';
+                loggedPanel.style.display = 'none';
+                return;
+            }
+            
+            notLoggedDiv.style.display = 'none';
+            loggedPanel.style.display = 'block';
+            
+            const statusText = document.getElementById('onlineStatusText');
+            const toggleBtn = document.getElementById('toggleOnlineBtn');
+            
+            if (currentDriverData.online) {
+                statusText.innerHTML = '<span class="status-indicator online"></span> Online';
+                toggleBtn.textContent = 'Ficar Offline';
+                toggleBtn.className = 'btn-online';
+            } else {
+                statusText.innerHTML = '<span class="status-indicator offline"></span> Offline';
+                toggleBtn.textContent = 'Ficar Online';
+                toggleBtn.className = 'btn-offline';
+            }
+            
+            const allRequests = await getRequests();
+            const acceptedFreights = allRequests.filter(r => r.status === 'accepted' && r.driver === currentDriverData.nome);
+            const acceptedContainer = document.getElementById('driverTabAccepted');
+            
+            if (acceptedFreights.length === 0) {
+                acceptedContainer.innerHTML = '<div style="text-align:center;padding:2rem;">Nenhum frete aceito por você ainda.</div>';
+            } else {
+                acceptedContainer.innerHTML = `<div class="driver-offers-list">${acceptedFreights.map(f => `
+                    <div class="driver-offer-item">
+                        <div><strong>${f.type === 'imediato' ? 'Frete Imediato' : 'Orçamento'}</strong> - Confirmado em ${f.date || new Date(f.createdAt).toLocaleDateString()}</div>
+                        <div>${f.origin} → ${f.destination}</div>
+                        <div>Valor acordado: R$ ${(f.acceptedPrice || f.price).toFixed(2)}</div>
+                        <div>Cliente: ${f.userName || f.userCpf}</div>
+                        <div><i class="fas fa-check-circle" style="color:var(--success);"></i> Frete em andamento</div>
+                    </div>
+                `).join('')}</div>`;
+            }
+            
+            const driverOffers = await getDriverOffers();
+            const myOffers = driverOffers.filter(o => o.driverCpf === currentDriverCpf);
+            const myOffersContainer = document.getElementById('driverTabMyoffers');
+            
+            if (myOffers.length === 0 && myOffersContainer) {
+                myOffersContainer.innerHTML = '<div style="text-align:center;padding:2rem;">Você ainda não fez nenhuma proposta para orçamentos.</div>';
+            } else if (myOffersContainer) {
+                myOffersContainer.innerHTML = `<div class="driver-offers-list">${myOffers.map(o => {
+                    let statusText = '';
+                    if (o.status === 'pending_approval') statusText = '<span class="badge-pending">Aguardando aprovação</span>';
+                    else if (o.status === 'approved') statusText = '<span class="badge-active">Aprovada</span>';
+                    else if (o.status === 'rejected') statusText = '<span class="badge-rejected">Recusada</span>';
+                    
+                    return `
+                        <div class="driver-offer-item">
+                            <div><strong>Orçamento #${o.requestId}</strong> - ${new Date(o.createdAt).toLocaleString()}</div>
+                            <div>${o.origin} → ${o.destination}</div>
+                            <div>Sua proposta: R$ ${o.price.toFixed(2)}</div>
+                            ${o.message ? `<div><i class="fas fa-comment"></i> "${escapeHtml(o.message)}"</div>` : ''}
+                            <div>Status: ${statusText}</div>
+                        </div>
+                    `;
+                }).join('')}</div>`;
+            }
+            
+            const myResponses = await immediateResponsesCol.where('driverCpf', '==', currentDriverCpf).get();
+            const myResponsesList = myResponses.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            if (myResponsesList.length > 0 && myOffersContainer) {
+                const imediatasHtml = `<div style="margin-top: 1rem;"><h4>Respostas a Fretes Imediatos</h4><div class="driver-offers-list">${myResponsesList.map(r => {
+                    let statusText = '';
+                    if (r.status === 'pending') statusText = '<span class="badge-pending">Aguardando resposta</span>';
+                    else if (r.status === 'accepted') statusText = '<span class="badge-active">Aceito pelo cliente</span>';
+                    else if (r.status === 'counter_offer') statusText = '<span class="badge-pending">Contra-oferta enviada</span>';
+                    else if (r.status === 'declined') statusText = '<span class="badge-rejected">Recusado</span>';
+                    
+                    return `
+                        <div class="driver-offer-item">
+                            <div><strong>Frete Imediato #${r.requestId}</strong> - ${new Date(r.createdAt).toLocaleString()}</div>
+                            <div>${r.origin} → ${r.destination}</div>
+                            <div>Valor original: R$ ${r.price.toFixed(2)}</div>
+                            ${r.counterPrice ? `<div>Sua contra-oferta: R$ ${r.counterPrice.toFixed(2)}</div>` : ''}
+                            <div>Status: ${statusText}</div>
+                        </div>
+                    `;
+                }).join('')}</div></div>`;
+                myOffersContainer.innerHTML += imediatasHtml;
+            }
+            
+            await renderDriverOrcamentos();
+        }
+        
+        function showDriverContactModal(driver, whatsapp, truck, rating, price) {
+            const container = document.getElementById('driverInfoContainer');
+            container.innerHTML = `
+                <div class="driver-avatar"><i class="fas fa-user-circle"></i></div>
+                <div class="driver-details">
+                    <h4>${escapeHtml(driver)}</h4>
+                    <p><i class="fas fa-truck"></i> ${escapeHtml(truck)} ⭐ ${rating}</p>
+                    <p>Valor: R$ ${price.toFixed(2)}</p>
+                </div>
+            `;
+            
+            const btn = document.getElementById('whatsappContactBtn');
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', () => {
+                window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent("Olá, seu frete foi aceito! Quando podemos alinhar os detalhes?")}`, '_blank');
+            });
+            document.getElementById('driverContactModal').style.display = 'flex';
+        }
+        
+        function closeDriverModalAndGoToRequests() { 
+            closeModal('driverContactModal'); 
+            showPage('myRequestsPage'); 
+        }
+        
+        // ========== ADMIN ==========
+        async function renderAdminPanel() {
+            const container = document.getElementById('adminPanelContent');
+            if (!container) return;
+            
+            container.innerHTML = '<div class="loading-placeholder"><i class="fas fa-spinner fa-pulse"></i> Carregando dados...</div>';
+            
+            const usersSnapshot = await usersCol.get();
+            const driversSnapshot = await driversCol.get();
+            const requests = await getRequests();
+            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const drivers = driversSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const offers = await getDriverOffers();
+            const pendingOffers = offers.filter(o => o.status === 'pending_approval');
+            
+            let html = `<div class="admin-stats">
+                <div class="stat-card"><i class="fas fa-users"></i><h3>${users.length}</h3><p>Clientes</p></div>
+                <div class="stat-card"><i class="fas fa-truck"></i><h3>${drivers.length}</h3><p>Motoristas</p></div>
+                <div class="stat-card"><i class="fas fa-clipboard-list"></i><h3>${requests.length}</h3><p>Total Pedidos</p></div>
+                <div class="stat-card"><i class="fas fa-check-circle"></i><h3>${requests.filter(r => r.status === 'accepted').length}</h3><p>Pedidos Aceitos</p></div>
+                <div class="stat-card"><i class="fas fa-hourglass-half"></i><h3>${requests.filter(r => r.status === 'pending' || r.status === 'budget_pending').length}</h3><p>Pendentes</p></div>
+                <div class="stat-card"><i class="fas fa-hand-holding-usd"></i><h3>${pendingOffers.length}</h3><p>Propostas Pendentes</p></div>
+            </div>`;
+            
+            if (pendingOffers.length > 0) {
+                html += `<div class="admin-section"><h3><i class="fas fa-hourglass-half"></i> Propostas Aguardando Aprovação</h3><div class="scrollable-table"><table class="admin-table"><thead><tr><th>Motorista</th><th>Valor</th><th>Mensagem</th><th>Pedido</th><th>Ações</th></tr></thead><tbody>`;
+                for (const of of pendingOffers) {
+                    html += `<tr>
+                        <td>${escapeHtml(of.driverName)}</td>
+                        <td>R$ ${of.price.toFixed(2)}</td>
+                        <td>${escapeHtml(of.message || '-')}</td>
+                        <td>${of.requestId}</td>
+                        <td><button class="btn-small success approve-offer" data-id="${of.id}">Aprovar</button> <button class="btn-small danger reject-offer" data-id="${of.id}">Recusar</button></td>
+                    </tr>`;
+                }
+                html += `</tbody>}</div></div>`;
+            }
+            
+            html += `<div class="admin-section"><h3><i class="fas fa-users"></i> Clientes</h3><div class="scrollable-table"><table class="admin-table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+            for (const u of users) {
+                html += `<tr>
+                    <td>${escapeHtml(u.nome)}</td>
+                    <td>${u.cpf}</td>
+                    <td>${u.telefone}</td>
+                    <td>${u.bloqueado ? '<span class="badge-blocked">Bloqueado</span>' : '<span class="badge-active">Ativo</span>'}</td>
+                    <td>
+                        <button class="btn-small warning reset-pwd-admin" data-type="cliente" data-cpf="${u.cpf}" data-name="${escapeHtml(u.nome)}">Senha</button>
+                        <button class="btn-small danger block-user-admin" data-cpf="${u.cpf}" data-blocked="${u.bloqueado}">${u.bloqueado ? 'Desbloquear' : 'Bloquear'}</button>
+                    </td>
+                </tr>`;
+            }
+            html += `</tbody>}</div></div>`;
+            
+            html += `<div class="admin-section"><h3><i class="fas fa-truck"></i> Motoristas</h3><div class="scrollable-table"><table class="admin-table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Caminhão</th><th>Status</th><th>Online</th><th>Aprovação Direta</th><th>Ações</th></tr></thead><tbody>`;
+            for (const d of drivers) {
+                html += `<tr>
+                    <td>${escapeHtml(d.nome)}</td>
+                    <td>${d.cpf}</td>
+                    <td>${d.telefone}</td>
+                    <td>${d.truck}</td>
+                    <td>${d.bloqueado ? '<span class="badge-blocked">Bloqueado</span>' : '<span class="badge-active">Ativo</span>'}</td>
+                    <td><span class="${d.online ? 'status-online' : 'status-offline'}">${d.online ? 'Online' : 'Offline'}</span></td>
+                    <td><button class="btn-small ${d.aprovacao_direta ? 'success' : 'warning'} toggle-aprovacao" data-cpf="${d.cpf}" data-status="${d.aprovacao_direta}">${d.aprovacao_direta ? 'Desativar' : 'Ativar'}</button></td>
+                    <td>
+                        <button class="btn-small warning reset-pwd-admin" data-type="motorista" data-cpf="${d.cpf}" data-name="${escapeHtml(d.nome)}">Senha</button>
+                        <button class="btn-small danger block-driver-admin" data-cpf="${d.cpf}" data-blocked="${d.bloqueado}">${d.bloqueado ? 'Desbloquear' : 'Bloquear'}</button>
+                        <button class="btn-small ${d.online ? 'warning' : 'success'} toggle-online-admin" data-cpf="${d.cpf}" data-online="${d.online}">${d.online ? 'Forçar Offline' : 'Forçar Online'}</button>
+                    </td>
+                </tr>`;
+            }
+            html += `</tbody>}</div></div>`;
+            
+            container.innerHTML = html;
+            
+            document.querySelectorAll('.reset-pwd-admin').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-type');
+                    const cpf = btn.getAttribute('data-cpf');
+                    const name = btn.getAttribute('data-name');
+                    openResetPasswordModal(type, cpf, name);
+                });
+            });
+            
+            document.querySelectorAll('.block-user-admin').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const cpf = btn.getAttribute('data-cpf');
+                    const blocked = btn.getAttribute('data-blocked') === 'true';
+                    await updateUser(cpf, { bloqueado: !blocked });
+                    renderAdminPanel();
+                    showToast(`Usuário ${!blocked ? 'bloqueado' : 'desbloqueado'} com sucesso.`);
+                });
+            });
+            
+            document.querySelectorAll('.block-driver-admin').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const cpf = btn.getAttribute('data-cpf');
+                    const blocked = btn.getAttribute('data-blocked') === 'true';
+                    await updateDriver(cpf, { bloqueado: !blocked });
+                    renderAdminPanel();
+                    showToast(`Motorista ${!blocked ? 'bloqueado' : 'desbloqueado'} com sucesso.`);
+                });
+            });
+            
+            document.querySelectorAll('.toggle-online-admin').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const cpf = btn.getAttribute('data-cpf');
+                    const online = btn.getAttribute('data-online') === 'true';
+                    await updateDriver(cpf, { online: !online });
+                    renderAdminPanel();
+                    showToast(`Status online do motorista alterado para ${!online ? 'Online' : 'Offline'}.`);
+                });
+            });
+            
+            document.querySelectorAll('.toggle-aprovacao').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const cpf = btn.getAttribute('data-cpf');
+                    const current = btn.getAttribute('data-status') === 'true';
+                    await updateDriver(cpf, { aprovacao_direta: !current });
+                    renderAdminPanel();
+                    showToast(`Aprovação direta ${!current ? 'ativada' : 'desativada'}.`);
+                });
+            });
+            
+            document.querySelectorAll('.approve-offer').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const offerId = parseInt(btn.getAttribute('data-id'));
+                    await updateDriverOffer(offerId, { status: 'approved' });
+                    showToast("Proposta aprovada!");
+                    renderAdminPanel();
+                });
+            });
+            
+            document.querySelectorAll('.reject-offer').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const offerId = parseInt(btn.getAttribute('data-id'));
+                    await updateDriverOffer(offerId, { status: 'rejected' });
+                    showToast("Proposta recusada!");
+                    renderAdminPanel();
+                });
+            });
+        }
+        
+        function openResetPasswordModal(type, cpf, name) {
+            pendingReset = { type, cpf, name };
+            document.getElementById('resetUserInfo').innerHTML = `<strong>${name}</strong><br>CPF: ${cpf}<br>Tipo: ${type === 'cliente' ? 'Cliente' : 'Motorista'}`;
+            document.getElementById('resetNewPassword').value = '';
+            document.getElementById('resetConfirmPassword').value = '';
+            document.getElementById('resetErrorMsg').innerText = '';
+            document.getElementById('adminResetPasswordModal').style.display = 'flex';
+        }
+        
+        async function confirmResetPassword() {
+            const newPass = document.getElementById('resetNewPassword').value;
+            const confirmPass = document.getElementById('resetConfirmPassword').value;
+            if (newPass !== confirmPass) { 
+                document.getElementById('resetErrorMsg').innerText = 'As senhas não coincidem.'; 
+                return; 
+            }
+            if (pendingReset.type === 'cliente') {
+                if (!validarSenhaCliente(newPass)) { 
+                    document.getElementById('resetErrorMsg').innerText = 'Senha deve ter 8+ caracteres, 1 maiúscula, 1 minúscula, 1 número.'; 
+                    return; 
+                }
+                await updateUser(pendingReset.cpf, { senha: newPass });
+                showToast(`Senha do cliente ${pendingReset.name} redefinida!`);
+            } else {
+                if (!validarSenhaMotorista(newPass)) { 
+                    document.getElementById('resetErrorMsg').innerText = 'Senha deve ter no mínimo 6 caracteres.'; 
+                    return; 
+                }
+                await updateDriver(pendingReset.cpf, { senha: newPass });
+                showToast(`Senha do motorista ${pendingReset.name} redefinida!`);
+            }
+            closeModal('adminResetPasswordModal');
+            renderAdminPanel();
+        }
+        
+        // ========== INICIALIZAÇÃO ==========
+        async function init() {
+            // Verificar login do cliente
+            const savedLogin = sessionStorage.getItem('freteja_loggedIn');
+            const savedCpf = sessionStorage.getItem('freteja_userCpf');
+            const savedName = sessionStorage.getItem('freteja_userName');
+            
+            if (savedLogin === 'true' && savedCpf) {
+                const user = await getUserByCpf(savedCpf);
+                if (user && !user.bloqueado) {
+                    isLoggedIn = true;
+                    currentUserCpf = savedCpf;
+                    currentUserName = user.nome;
+                } else {
+                    sessionStorage.removeItem('freteja_loggedIn');
+                    sessionStorage.removeItem('freteja_userCpf');
+                    sessionStorage.removeItem('freteja_userName');
+                }
+            }
+            updateUserInterface();
+            
+            // Verificar login do motorista
+            const driverLogged = sessionStorage.getItem('freteja_driver_logged');
+            const driverCpf = sessionStorage.getItem('freteja_driver_cpf');
+            
+            if (driverLogged === 'true' && driverCpf) {
+                const d = await getDriverByCpf(driverCpf);
+                if (d && !d.bloqueado) {
+                    isDriverLoggedIn = true;
+                    currentDriverCpf = driverCpf;
+                    currentDriverData = d;
+                    if (d.online) {
+                        startListeningForRequests();
+                    }
+                } else {
+                    sessionStorage.removeItem('freteja_driver_logged');
+                    sessionStorage.removeItem('freteja_driver_cpf');
+                    sessionStorage.removeItem('freteja_driver_name');
+                }
+            }
+            
+            // Configurar data/hora mínima para orçamento
+            const dt = document.getElementById('scheduledDateTime');
+            if (dt) { 
+                const now = new Date(); 
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); 
+                dt.min = now.toISOString().slice(0,16); 
+                dt.value = new Date(Date.now() + 2*3600000).toISOString().slice(0,16); 
+            }
+            
+            // Eventos de navegação
+            document.querySelectorAll('.service-card, .nav-link').forEach(el => {
+                el.addEventListener('click', (e) => { 
+                    const page = el.getAttribute('data-page'); 
+                    if(page) showPage(page); 
+                });
+            });
+            
+            document.querySelectorAll('.back-home').forEach(btn => {
+                btn.addEventListener('click', () => showPage('homePage'));
+            });
+            
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.addEventListener('click', () => { 
+                    selectedTruckType = btn.getAttribute('data-truck'); 
+                    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active')); 
+                    btn.classList.add('active'); 
+                    updatePriceSuggestion('imediato'); 
+                    updatePriceSuggestion('orcamento'); 
+                });
+            });
+            
+            document.querySelectorAll('.request-freight').forEach(btn => {
+                btn.addEventListener('click', (e) => { 
+                    const type = btn.getAttribute('data-type'); 
+                    if(type === 'imediato') requestImmediate(); 
+                    else if(type === 'orcamento') requestScheduledBudget(); 
+                });
+            });
+            
+            // FAQ accordion
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', () => {
+                    const answer = question.nextElementSibling;
+                    const icon = question.querySelector('i');
+                    answer.classList.toggle('show');
+                    if (answer.classList.contains('show')) {
+                        icon.style.transform = 'rotate(180deg)';
+                    } else {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+            
+            // Modais
+            document.getElementById('closeOffersBtn')?.addEventListener('click', () => closeModal('offersModal'));
+            document.getElementById('closeResponsesBtn')?.addEventListener('click', () => closeModal('driverResponsesModal'));
+            document.getElementById('closeDriverModalBtn')?.addEventListener('click', closeDriverModalAndGoToRequests);
+            document.getElementById('closeDriverAfterContact')?.addEventListener('click', closeDriverModalAndGoToRequests);
+            document.getElementById('closeBudgetModalBtn')?.addEventListener('click', () => closeModal('budgetInfoModal'));
+            document.getElementById('closeRecoveryModalBtn')?.addEventListener('click', () => closeModal('recoveryModal'));
+            document.getElementById('closeLoginModalBtn')?.addEventListener('click', () => closeModal('loginModal'));
+            document.getElementById('closeRegisterModalBtn')?.addEventListener('click', () => closeModal('registerModal'));
+            document.getElementById('closeReceiveModalBtn')?.addEventListener('click', () => closeModal('driverReceiveModal'));
+            document.getElementById('closeOrcamentoOfferModalBtn')?.addEventListener('click', () => closeModal('orcamentoOfferModal'));
+            
+            window.addEventListener('click', (e) => { 
+                if(e.target.classList.contains('modal')) closeModal(e.target.id); 
+            });
+            
+            // Login cliente
+            document.getElementById('entrarBtn')?.addEventListener('click', async () => {
+                const cpf = document.getElementById('loginCpf').value;
+                const senha = document.getElementById('loginSenha').value;
+                if(await loginUser(cpf, senha)) {
+                    closeModal('loginModal');
+                    showToast(`Bem-vindo, ${currentUserName || currentUserCpf}!`);
+                    renderRequestsPage();
+                } else {
+                    document.getElementById('loginError').innerText = "CPF ou senha inválidos.";
+                }
+            });
+            
+            document.getElementById('criarContaLink')?.addEventListener('click', () => { 
+                closeModal('loginModal'); 
+                showRegisterModal(); 
+            });
+            
+            document.getElementById('esqueciSenhaLink')?.addEventListener('click', () => { 
+                closeModal('loginModal'); 
+                document.getElementById('recoveryModal').style.display = 'flex'; 
+            });
+            
+            document.getElementById('voltarLoginLink')?.addEventListener('click', () => { 
+                closeModal('registerModal'); 
+                showLoginModal(); 
+            });
+            
+            // Registrar cliente (com aceite de termos)
+            document.getElementById('registrarBtn')?.addEventListener('click', async () => {
+                const nome = document.getElementById('regNome').value.trim();
+                const cpf = document.getElementById('regCpf').value.trim();
+                const telefone = document.getElementById('regTelefone').value.trim();
+                const senha = document.getElementById('regSenha').value;
+                const confirm = document.getElementById('regConfirmSenha').value;
+                const pergunta = document.getElementById('regPergunta').value;
+                const resposta = document.getElementById('regResposta').value.trim();
+                const aceite = document.getElementById('regAcceptTerms').checked;
+                
+                if (!nome || !cpf || !telefone || !senha) { 
+                    showToast("Preencha todos os campos."); 
+                    return; 
+                }
+                if (senha !== confirm) { 
+                    showToast("Senhas não coincidem."); 
+                    return; 
+                }
+                if (await registerUser(nome, cpf, telefone, senha, pergunta, resposta, aceite)) {
+                    showToast("Cadastro realizado! Faça login.");
+                    closeModal('registerModal');
+                    showLoginModal();
+                }
+            });
+            
+            // Login motorista
+            document.getElementById('showDriverLoginBtn')?.addEventListener('click', () => {
+                document.getElementById('driverLoginModal').style.display = 'flex';
+            });
+            
+            document.getElementById('showDriverRegisterBtn')?.addEventListener('click', () => {
+                document.getElementById('driverRegisterModal').style.display = 'flex';
+            });
+            
+            document.getElementById('closeDriverLoginModalBtn')?.addEventListener('click', () => closeModal('driverLoginModal'));
+            document.getElementById('closeDriverRegisterModalBtn')?.addEventListener('click', () => closeModal('driverRegisterModal'));
+            
+            document.getElementById('driverCadastrarLink')?.addEventListener('click', () => { 
+                closeModal('driverLoginModal'); 
+                document.getElementById('driverRegisterModal').style.display = 'flex'; 
+            });
+            
+            document.getElementById('driverVoltarLoginLink')?.addEventListener('click', () => { 
+                closeModal('driverRegisterModal'); 
+                document.getElementById('driverLoginModal').style.display = 'flex'; 
+            });
+            
+            document.getElementById('driverEntrarBtn')?.addEventListener('click', async () => {
+                const cpf = document.getElementById('driverLoginCpf').value.trim();
+                const senha = document.getElementById('driverLoginSenha').value;
+                if (await loginDriver(cpf, senha)) {
+                    closeModal('driverLoginModal');
+                    showToast(`Bem-vindo, ${currentDriverData.nome}!`);
+                    renderDriverPanel();
+                    showPage('driverPage');
+                } else {
+                    document.getElementById('driverLoginError').innerText = "CPF ou senha inválidos.";
+                }
+            });
+            
+            // Registrar motorista (com aceite de termos)
+            document.getElementById('driverRegistrarBtn')?.addEventListener('click', async () => {
+                const nome = document.getElementById('driverRegNome').value.trim();
+                const cpf = document.getElementById('driverRegCpf').value.trim();
+                const telefone = document.getElementById('driverRegTelefone').value.trim();
+                const truck = document.getElementById('driverRegTruck').value;
+                const senha = document.getElementById('driverRegSenha').value;
+                const confirm = document.getElementById('driverRegConfirmSenha').value;
+                const aceite = document.getElementById('driverRegAcceptTerms').checked;
+                
+                if (!nome || !cpf || !telefone || !senha) { 
+                    showToast("Preencha todos os campos."); 
+                    return; 
+                }
+                if (senha !== confirm) { 
+                    showToast("Senhas não coincidem."); 
+                    return; 
+                }
+                if (await registerDriver(nome, cpf, telefone, truck, senha, aceite)) {
+                    showToast("Cadastro realizado! Faça login.");
+                    closeModal('driverRegisterModal');
+                    document.getElementById('driverLoginModal').style.display = 'flex';
+                }
+            });
+            
+            document.getElementById('driverLogoutBtn')?.addEventListener('click', logoutDriver);
+            document.getElementById('toggleOnlineBtn')?.addEventListener('click', toggleDriverOnline);
+            
+            // Eventos do modal de motorista (frete imediato)
+            document.getElementById('acceptFreightBtn')?.addEventListener('click', acceptFreightAsDriver);
+            document.getElementById('makeCounterOfferBtn')?.addEventListener('click', () => {
+                document.getElementById('counterOfferDiv').style.display = 'block';
+                document.getElementById('makeCounterOfferBtn').style.display = 'none';
+            });
+            document.getElementById('sendDriverCounterBtn')?.addEventListener('click', sendDriverCounterOffer);
+            document.getElementById('declineFreightBtn')?.addEventListener('click', declineFreight);
+            
+            // Eventos do modal de orçamento
+            document.getElementById('sendOrcamentoOfferBtn')?.addEventListener('click', sendOrcamentoOffer);
+            document.getElementById('cancelOrcamentoOfferBtn')?.addEventListener('click', () => closeModal('orcamentoOfferModal'));
+            
+            // Recuperar senha
+            document.getElementById('fetchSecurityQuestionBtn')?.addEventListener('click', async () => {
+                const cpf = document.getElementById('recoveryCpf').value.trim();
+                const user = await getUserByCpf(cpf.replace(/[^\d]+/g, ''));
+                if (user) {
+                    document.getElementById('recoveryQuestionDisplay').value = user.pergunta;
+                    document.getElementById('securityQuestionDiv').style.display = 'block';
+                    window.tempSecurityUser = user;
+                } else {
+                    showToast("CPF não encontrado.");
+                }
+            });
+            
+            document.getElementById('resetBySecurityBtn')?.addEventListener('click', async () => {
+                const user = window.tempSecurityUser;
+                if (!user) { showToast("Busque a pergunta primeiro."); return; }
+                const answer = document.getElementById('recoveryAnswer').value.trim().toLowerCase();
+                if (answer !== user.resposta) { showToast("Resposta incorreta."); return; }
+                const newPass = document.getElementById('newPasswordRecovery').value;
+                const confirmPass = document.getElementById('confirmNewPasswordRecovery').value;
+                if (newPass !== confirmPass) { showToast("Senhas não conferem."); return; }
+                await updateUser(user.cpf, { senha: newPass });
+                showToast("Senha redefinida! Faça login.");
+                closeModal('recoveryModal');
+                showLoginModal();
+            });
+            
+            // Admin
+            const secretBtn = document.getElementById('adminSecretBtn');
+            if (secretBtn) {
+                secretBtn.addEventListener('dblclick', async (e) => {
+                    e.preventDefault();
+                    if (isAdminLoggedIn) {
+                        await renderAdminPanel();
+                        document.getElementById('adminPanelModal').style.display = 'flex';
+                    } else {
+                        document.getElementById('adminLoginModal').style.display = 'flex';
+                    }
+                });
+            }
+            
+            document.getElementById('closeAdminLoginModalBtn')?.addEventListener('click', () => closeModal('adminLoginModal'));
+            document.getElementById('closeAdminPanelBtn')?.addEventListener('click', () => closeModal('adminPanelModal'));
+            document.getElementById('adminLogoutBtn')?.addEventListener('click', () => {
+                isAdminLoggedIn = false;
+                closeModal('adminPanelModal');
+                showToast("Administrador deslogado.");
+            });
+            
+            document.getElementById('adminLoginBtn')?.addEventListener('click', () => {
+                const user = document.getElementById('adminUser').value.trim();
+                const pass = document.getElementById('adminPassword').value.trim();
+                if (user === 'Ricardo' && pass === 'flamengo') {
+                    isAdminLoggedIn = true;
+                    closeModal('adminLoginModal');
+                    renderAdminPanel();
+                    document.getElementById('adminPanelModal').style.display = 'flex';
+                } else {
+                    document.getElementById('adminLoginError').innerText = 'Usuário ou senha incorretos.';
+                }
+            });
+            
+            document.getElementById('closeResetModalBtn')?.addEventListener('click', () => closeModal('adminResetPasswordModal'));
+            document.getElementById('confirmResetBtn')?.addEventListener('click', confirmResetPassword);
+            
+            // Força de senha
+            const senhaInput = document.getElementById('regSenha');
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            
+            if(senhaInput) {
+                senhaInput.addEventListener('input', () => {
+                    const forca = calcularForcaSenha(senhaInput.value);
+                    strengthFill.style.width = forca.percent + '%';
+                    strengthFill.style.backgroundColor = forca.cor;
+                    strengthText.innerText = `Força: ${forca.nivel}`;
+                });
+            }
+            
+            // Inicializar cálculos de preço
+            ['imediato', 'orcamento'].forEach(t => { 
+                attachEvents(t); 
+                updatePriceSuggestion(t); 
+            });
+            
+            // Inicializar abas do motorista e adicionar aba "Meu Perfil"
+            const driverTabsContainer = document.querySelector('.driver-tabs');
+            if (driverTabsContainer && !document.getElementById('driverTabPerfil')) {
+                const perfilTab = document.createElement('div');
+                perfilTab.className = 'driver-tab';
+                perfilTab.setAttribute('data-tab', 'perfil');
+                perfilTab.innerHTML = '<i class="fas fa-user-edit"></i> Meu Perfil';
+                driverTabsContainer.appendChild(perfilTab);
+                
+                // Criar conteúdo da aba perfil
+                const driverContent = document.getElementById('driverLoggedPanel');
+                const perfilDiv = document.createElement('div');
+                perfilDiv.id = 'driverTabPerfil';
+                perfilDiv.className = 'driver-tab-content';
+                perfilDiv.style.display = 'none';
+                perfilDiv.innerHTML = `
+                    <div class="form-card">
+                        <h3><i class="fas fa-user-circle"></i> Editar Perfil do Motorista</h3>
+                        <div class="avatar-upload">
+                            <div class="profile-avatar" id="motoristaAvatarPreview"><i class="fas fa-truck"></i></div>
+                            <label for="motoristaFotoInput"><i class="fas fa-camera"></i> Alterar Foto</label>
+                            <input type="file" id="motoristaFotoInput" accept="image/*">
+                        </div>
+                        <div class="form-group"><label>Nome completo</label><input type="text" id="perfilMotoristaNome"></div>
+                        <div class="form-group"><label>CPF</label><input type="text" id="perfilMotoristaCpf" readonly disabled></div>
+                        <div class="form-group"><label>Telefone (WhatsApp)</label><input type="tel" id="perfilMotoristaTelefone"></div>
+                        <div class="form-group"><label>Tipo de Caminhão</label><select id="perfilMotoristaTruck"><option value="HR Baú">HR Baú</option><option value="Iveco Daily">Iveco Daily</option><option value="VUC">VUC</option><option value="Caminhão 3/4">Caminhão 3/4</option><option value="Carreta">Carreta</option></select></div>
+                        <div class="form-group"><label>Placa do Caminhão</label><input type="text" id="perfilMotoristaPlaca" placeholder="ABC-1234"></div>
+                        <div class="form-group"><label>Número da CNH</label><input type="text" id="perfilMotoristaCnh" placeholder="CNH"></div>
+                        <div class="form-group"><label>Nova Senha</label><input type="password" id="perfilMotoristaNovaSenha" placeholder="Deixe em branco para manter"></div>
+                        <div class="form-group"><label>Confirmar Nova Senha</label><input type="password" id="perfilMotoristaConfirmSenha"></div>
+                        <button id="salvarPerfilMotoristaBtn" class="btn-primary">Salvar Alterações</button>
+                    </div>
+                `;
+                driverContent.appendChild(perfilDiv);
+                document.getElementById('salvarPerfilMotoristaBtn')?.addEventListener('click', salvarPerfilMotorista);
+                document.getElementById('motoristaFotoInput')?.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            document.getElementById('motoristaAvatarPreview').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // Eventos das abas do motorista
+            document.querySelectorAll('.driver-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.driver-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.driver-tab-content').forEach(content => content.style.display = 'none');
+                    if (tabName === 'perfil') {
+                        document.getElementById('driverTabPerfil').style.display = 'block';
+                        carregarPerfilMotorista();
+                    } else {
+                        const contentId = `driverTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+                        const contentEl = document.getElementById(contentId);
+                        if (contentEl) contentEl.style.display = 'block';
+                        if (tabName === 'orcamentos') renderDriverOrcamentos();
+                        else if (tabName === 'available') renderDriverPanel();
+                        else if (tabName === 'myoffers') renderDriverPanel();
+                        else if (tabName === 'accepted') renderDriverPanel();
+                    }
+                });
+            });
+            
+            renderDriverPanel();
+
+            // Menu hamburguer
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const navLinksMenu = document.getElementById('navLinks');
+            if (hamburgerBtn && navLinksMenu) {
+                hamburgerBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navLinksMenu.classList.toggle('open');
+                    const icon = hamburgerBtn.querySelector('i');
+                    if (navLinksMenu.classList.contains('open')) {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-times');
+                    } else {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        navLinksMenu.classList.remove('open');
+                        const icon = hamburgerBtn.querySelector('i');
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    });
+                });
+                document.addEventListener('click', (event) => {
+                    if (navLinksMenu.classList.contains('open') && !navLinksMenu.contains(event.target) && !hamburgerBtn.contains(event.target)) {
+                        navLinksMenu.classList.remove('open');
+                        const icon = hamburgerBtn.querySelector('i');
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+            }
+
+            // WhatsApp floating button
+            const whatsappFloatBtn = document.getElementById('whatsappFloatBtn');
+            if (whatsappFloatBtn) {
+                const whatsappNumber = "5561996213629";
+                const message = "Olá! Gostaria de mais informações sobre os serviços da FreteJá: *Fretes Imediatos* e *Orçamentos Agendados*. Pode me ajudar?";
+                const encodedMsg = encodeURIComponent(message);
+                whatsappFloatBtn.href = `https://wa.me/${whatsappNumber}?text=${encodedMsg}`;
+            }
+
+            // WhatsApp request buttons
+            document.querySelectorAll('.request-whatsapp').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const page = btn.getAttribute('data-page');
+                    let message = '';
+
+                    if (page === 'imediato') {
+                        const origin = document.getElementById('imediatoOrigin')?.value || '';
+                        const destination = document.getElementById('imediatoDestination')?.value || '';
+                        const distance = document.getElementById('imediatoDistance')?.value || '';
+                        const truckType = document.querySelector('.type-btn.active')?.getAttribute('data-truck') === 'leve' ? 'Leve (até 3t)' : 'Média/Pesada';
+                        const helpers = document.getElementById('imediatoHelpers')?.value || '0';
+                        const cargo = document.getElementById('imediatoCargo')?.value || '';
+                        const tipoServico = document.querySelector('input[name="tipoServicoImediato"]:checked')?.value === 'mudanca' ? 'Mudança' : 'Frete';
+                        const desiredPrice = document.getElementById('imediatoPrice')?.value || 'Não informado';
+                        
+                        const retTipo = document.getElementById('imediatoResidenciaRetirada')?.value;
+                        let retDetalhe = retTipo === 'apartamento' ? 'Apartamento' : 'Casa';
+                        if (retTipo === 'apartamento') {
+                            const acesso = document.getElementById('imediatoAcessoRetirada')?.value;
+                            retDetalhe += ` (${acesso === 'escada' ? 'Escada' : 'Elevador'})`;
+                            if (acesso === 'escada') {
+                                const andar = document.getElementById('imediatoAndarRetirada')?.value;
+                                retDetalhe += ` - ${andar}º andar`;
+                            }
+                        }
+                        
+                        const entTipo = document.getElementById('imediatoResidenciaEntrega')?.value;
+                        let entDetalhe = entTipo === 'apartamento' ? 'Apartamento' : 'Casa';
+                        if (entTipo === 'apartamento') {
+                            const acesso = document.getElementById('imediatoAcessoEntrega')?.value;
+                            entDetalhe += ` (${acesso === 'escada' ? 'Escada' : 'Elevador'})`;
+                            if (acesso === 'escada') {
+                                const andar = document.getElementById('imediatoAndarEntrega')?.value;
+                                entDetalhe += ` - ${andar}º andar`;
+                            }
+                        }
+
+                        message = `*SOLICITAÇÃO DE FRETE IMEDIATO* 🚛\n\n` +
+                                  `*Origem:* ${origin}\n*Destino:* ${destination}\n*Distância:* ${distance} km\n` +
+                                  `*Tipo de caminhão:* ${truckType}\n*Ajudantes:* ${helpers}\n*Tipo de serviço:* ${tipoServico}\n` +
+                                  `*Valor desejado:* R$ ${desiredPrice}\n` +
+                                  `*Retirada:* ${retDetalhe}\n*Entrega:* ${entDetalhe}\n` +
+                                  `*Descrição da carga:* ${cargo.substring(0, 200)}\n\n` +
+                                  `Gostaria de um orçamento personalizado. Aguardo contato.`;
+                    } 
+                    else if (page === 'orcamento') {
+                        const origin = document.getElementById('orcamentoOrigin')?.value || '';
+                        const destination = document.getElementById('orcamentoDestination')?.value || '';
+                        const distance = document.getElementById('orcamentoDistance')?.value || '';
+                        const truckType = document.querySelector('.type-btn.active')?.getAttribute('data-truck') === 'leve' ? 'Leve (até 3t)' : 'Média/Pesada';
+                        const helpers = document.getElementById('orcamentoHelpers')?.value || '0';
+                        const cargo = document.getElementById('orcamentoCargo')?.value || '';
+                        const tipoServico = document.querySelector('input[name="tipoServicoOrcamento"]:checked')?.value === 'mudanca' ? 'Mudança' : 'Frete';
+                        const dataHora = document.getElementById('scheduledDateTime')?.value || '';
+                        const desiredPrice = document.getElementById('orcamentoPrice')?.value || 'Não informado';
+                        
+                        const retTipo = document.getElementById('orcamentoResidenciaRetirada')?.value;
+                        let retDetalhe = retTipo === 'apartamento' ? 'Apartamento' : 'Casa';
+                        if (retTipo === 'apartamento') {
+                            const acesso = document.getElementById('orcamentoAcessoRetirada')?.value;
+                            retDetalhe += ` (${acesso === 'escada' ? 'Escada' : 'Elevador'})`;
+                            if (acesso === 'escada') {
+                                const andar = document.getElementById('orcamentoAndarRetirada')?.value;
+                                retDetalhe += ` - ${andar}º andar`;
+                            }
+                        }
+                        
+                        const entTipo = document.getElementById('orcamentoResidenciaEntrega')?.value;
+                        let entDetalhe = entTipo === 'apartamento' ? 'Apartamento' : 'Casa';
+                        if (entTipo === 'apartamento') {
+                            const acesso = document.getElementById('orcamentoAcessoEntrega')?.value;
+                            entDetalhe += ` (${acesso === 'escada' ? 'Escada' : 'Elevador'})`;
+                            if (acesso === 'escada') {
+                                const andar = document.getElementById('orcamentoAndarEntrega')?.value;
+                                entDetalhe += ` - ${andar}º andar`;
+                            }
+                        }
+
+                        message = `*SOLICITAÇÃO DE ORÇAMENTO AGENDADO* 📅\n\n` +
+                                  `*Origem:* ${origin}\n*Destino:* ${destination}\n*Distância:* ${distance} km\n` +
+                                  `*Tipo de caminhão:* ${truckType}\n*Ajudantes:* ${helpers}\n*Tipo de serviço:* ${tipoServico}\n` +
+                                  `*Data/Hora desejada:* ${dataHora}\n` +
+                                  `*Valor desejado:* R$ ${desiredPrice}\n` +
+                                  `*Retirada:* ${retDetalhe}\n*Entrega:* ${entDetalhe}\n` +
+                                  `*Descrição da carga:* ${cargo.substring(0, 200)}\n\n` +
+                                  `Gostaria de um orçamento personalizado. Aguardo contato.`;
+                    }
+
+                    const whatsappNumber = "5561996213629";
+                    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+                    window.open(url, '_blank');
+                });
+            });
+
+            // Termos de uso: abrir modal
+            const openTermsModal = () => { document.getElementById('termsModal').style.display = 'flex'; };
+            document.getElementById('openTermsFooter')?.addEventListener('click', openTermsModal);
+            document.getElementById('regTermsLink')?.addEventListener('click', (e) => { e.preventDefault(); openTermsModal(); });
+            document.getElementById('driverRegTermsLink')?.addEventListener('click', (e) => { e.preventDefault(); openTermsModal(); });
+            document.getElementById('closeTermsModalBtn')?.addEventListener('click', () => closeModal('termsModal'));
+            document.getElementById('closeTermsModalOkBtn')?.addEventListener('click', () => closeModal('termsModal'));
+            
+            // Perfil cliente
+            document.getElementById('perfilClienteLink')?.addEventListener('click', () => { 
+                showPage('clientePerfilPage'); 
+                carregarPerfilCliente(); 
+            });
+            document.getElementById('salvarPerfilClienteBtn')?.addEventListener('click', salvarPerfilCliente);
+            document.getElementById('clienteFotoInput')?.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        document.getElementById('clienteAvatarPreview').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        function calcularForcaSenha(senha) {
+            let forca = 0;
+            if (senha.length >= 8) forca++;
+            if (/[a-z]/.test(senha)) forca++;
+            if (/[A-Z]/.test(senha)) forca++;
+            if (/[0-9]/.test(senha)) forca++;
+            if (/[^a-zA-Z0-9]/.test(senha)) forca++;
+            if (forca <= 2) return { nivel: 'Fraca', cor: '#e74c3c', percent: 25 };
+            if (forca === 3) return { nivel: 'Média', cor: '#f39c12', percent: 50 };
+            if (forca === 4) return { nivel: 'Forte', cor: '#2ecc71', percent: 75 };
+            return { nivel: 'Muito Forte', cor: '#27ae60', percent: 100 };
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
